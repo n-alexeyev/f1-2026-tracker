@@ -1862,13 +1862,17 @@ async function openSidebar(driverId, col, seasonData = {}) {
   /* career stats */
   document.getElementById('sb-stats-loading').textContent = '';
   if (stats) {
-    /* wins + podiums + poles from API; poles fallback to static */
-    const staticPoles = d.stats.find(s => s.lbl.toLowerCase().includes('pole'))?.val ?? d.stats[1]?.val ?? '0';
-    const polesVal = (stats.poles != null && stats.poles > 0) ? stats.poles : staticPoles;
+    /* API values with static fallback if API returns 0 (rate-limit / empty response) */
+    const staticWins    = d.stats.find(s => s.lbl.toLowerCase().includes('win'))?.val    ?? '0';
+    const staticPoles   = d.stats.find(s => s.lbl.toLowerCase().includes('pole'))?.val   ?? '0';
+    const staticPodiums = d.stats.find(s => s.lbl.toLowerCase().includes('podium'))?.val ?? '0';
+    const winsVal    = (stats.wins    > 0) ? stats.wins    : staticWins;
+    const polesVal   = (stats.poles   > 0) ? stats.poles   : staticPoles;
+    const podiumsVal = (stats.podiums > 0) ? stats.podiums : staticPodiums;
     document.getElementById('sb-stats-grid').innerHTML = [
-      {val: stats.wins,  lbl: 'Race Wins'},
-      {val: polesVal,    lbl: 'Pole Positions'},
-      {val: stats.podiums, lbl: 'Podiums'},
+      {val: winsVal,    lbl: 'Race Wins'},
+      {val: polesVal,   lbl: 'Pole Positions'},
+      {val: podiumsVal, lbl: 'Podiums'},
     ].map(s => `<div class="sb-stat"><span class="sb-stat-val">${s.val}</span><span class="sb-stat-lbl">${s.lbl}</span></div>`).join('');
   } else {
     /* fallback to static data */
