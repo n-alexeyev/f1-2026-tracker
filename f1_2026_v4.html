@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 2026 — Season Tracker v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070d;--bg2:#0c0c16;--card:#111120;--card2:#16162a;
+  --border:rgba(255,255,255,0.055);--border2:rgba(255,255,255,0.11);
+  --red:#e8000f;--red-dim:rgba(232,0,15,0.12);
+  --gold:#f5c518;--silver:#a8b4c2;--bronze:#c87533;
+  --text:#ededf5;--muted:rgba(237,237,245,0.36);--muted2:rgba(237,237,245,0.58);
+  --ff:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif;--fm:'DM Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.018) 3px,rgba(0,0,0,0.018) 4px);pointer-events:none;z-index:0}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:50px;background:rgba(7,7,13,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-f1{background:var(--red);color:#fff;font-family:var(--ff);font-size:20px;font-weight:900;letter-spacing:2px;padding:3px 8px;border-radius:3px}
+.nav-year{font-family:var(--ff);font-size:24px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.7)}
+.nav-links{display:flex;gap:28px}
+.nav-links a{font-family:var(--fm);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-status{display:flex;align-items:center;gap:7px;font-family:var(--fm);font-size:12px;letter-spacing:1px;color:var(--muted)}
+.status-dot{width:5px;height:5px;border-radius:50%;background:#22c55e;animation:blink 2.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── HERO ── */
+.hero{position:relative;overflow:hidden;padding:52px 0 56px;background:radial-gradient(ellipse 110% 70% at 50% -10%,rgba(232,0,15,0.1) 0%,transparent 55%)}
+.hero-grid{position:absolute;inset:0;background:linear-gradient(90deg,var(--border) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(0deg,var(--border) 1px,transparent 1px) 0 0/48px 48px;mask-image:radial-gradient(ellipse 90% 100% at 50% 0,#000 0,transparent 65%);pointer-events:none}
+.hero-in{max-width:1200px;margin:0 auto;position:relative;display:grid;grid-template-columns:280px 1fr;gap:48px;align-items:start;padding:0 32px}
+.hero-tag{font-family:var(--fm);font-size:12px;letter-spacing:4px;text-transform:uppercase;color:var(--red);display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.hero-tag::before{content:'';width:28px;height:1px;background:var(--red)}
+.hero-h1{font-family:var(--ff);font-weight:900;font-size:clamp(52px,7vw,92px);line-height:.9;letter-spacing:-3px;color:#fff}
+.hero-h1 em{font-style:normal;color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,0.18)}
+.hero-sub{font-family:var(--fm);font-size:12px;letter-spacing:3px;color:var(--muted);margin-top:14px;text-transform:uppercase}
+/* Hero standings */
+.hero-std-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:0}
+.hstd-cap{font-family:var(--fm);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.hstd-row{display:flex;align-items:center;gap:9px;padding:7px 0}
+.hstd-row:not(:last-of-type){border-bottom:1px solid rgba(255,255,255,.04)}
+.hstd-pos{font-family:var(--fm);font-size:13px;min-width:18px;color:var(--muted)}
+.hstd-pos.g{color:var(--gold)}.hstd-pos.s{color:var(--silver)}.hstd-pos.b{color:var(--bronze)}
+.hstd-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.hstd-name{font-family:var(--ff);font-size:21px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hstd-pts{font-family:var(--fm);font-size:17px;font-weight:500;color:#fff;flex-shrink:0}
+.hstd-pts.g{color:var(--gold)}
+.hstd-bar-bg{height:2px;background:rgba(255,255,255,.06);border-radius:1px;margin-bottom:2px}
+.hstd-bar{height:100%;border-radius:1px}
+
+/* Season summary KPIs (bottom) */
+.season-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.season-kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 26px}
+.season-kpi-val{font-family:var(--ff);font-size:clamp(28px,3.2vw,44px);font-weight:900;line-height:1;color:#fff}
+.season-kpi-lbl{font-family:var(--fm);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:7px}
+.season-kpi-sub{font-family:var(--fm);font-size:14px;color:var(--muted2);margin-top:5px}
+
+/* Driver stats (always visible, 2 columns) */
+.drv-stats{display:grid;grid-template-columns:1fr 1px 1fr;margin-top:0}
+.drv-stat{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 4px}
+.drv-stat-val{font-family:var(--ff);font-size:25px;font-weight:900;line-height:1;color:#fff}
+.drv-stat-lbl{font-family:var(--fm);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:1px}
+.drv-stat-sep{background:var(--border)}
+
+
+/* Hero standings — drivers scroll synced to constructors height */
+.hstd-scroll{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.hstd-scroll::-webkit-scrollbar{width:3px}
+.hstd-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+#hero-con-std{overflow-y:visible}
+
+
+
+/* ── SEASON TIMELINE ── */
+.tl-wrap{max-width:1200px;margin:0 auto 40px;padding:0 32px}
+.tl-inner{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px 14px}
+.tl-cap{font-family:var(--fm);font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.tl-cap-right{font-family:var(--fm);font-size:12px;color:var(--muted);opacity:.5}
+.tl-track{display:flex;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tl-track::-webkit-scrollbar{display:none}
+.tl-stop{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:58px;position:relative;cursor:default}
+.tl-stop:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:1px;background:var(--border);z-index:0}
+.tl-stop.done:not(:last-child)::after{background:rgba(245,197,24,.35)}
+.tl-dot{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:12px;font-weight:500;color:var(--muted);background:var(--bg);position:relative;z-index:1;flex-shrink:0}
+.tl-stop.done .tl-dot{background:rgba(245,197,24,.12);border-color:var(--gold);color:var(--gold)}
+.tl-stop.nxt .tl-dot{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 0 14px rgba(232,0,15,.6);animation:blink 1.4s infinite}
+.tl-fl{font-size:14px;line-height:1}
+.tl-win{font-family:var(--fm);font-size:12px;color:var(--gold);white-space:nowrap;max-width:56px;overflow:hidden;text-overflow:ellipsis;text-align:center;height:15px}
+.tl-label{font-family:var(--fm);font-size:12px;color:var(--muted);opacity:.55;text-align:center;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:15px}
+
+/* ── NEXT RACE ── */
+/* ── HERO NEXT RACE (внутри левой колонки) ── */
+.hero-next{margin-top:28px;padding-top:22px;border-top:1px solid var(--border)}
+.hero-next-lbl{font-family:var(--fm);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.hero-next-race{display:flex;align-items:center;gap:10px}
+.hero-next-flag{font-size:28px;line-height:1;flex-shrink:0}
+.hero-next-name{font-family:var(--ff);font-size:24px;font-weight:700;line-height:1.15}
+.hero-next-sub{font-family:var(--fm);font-size:12px;color:var(--muted);margin-top:7px;letter-spacing:.5px;line-height:1.5}
+.hero-cd{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:14px}
+.hero-cd-b{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px 4px;text-align:center}
+.hero-cd-n{font-family:var(--fm);font-size:26px;font-weight:500;color:#fff;line-height:1;display:block}
+.hero-cd-l{font-family:var(--fm);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px;display:block}
+
+/* ── SECTION ── */
+.sec{max-width:1200px;margin:0 auto;padding:0 32px 60px}
+.sec-hd{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:28px}
+.sec-t{font-family:var(--fm);font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.sec-m{font-family:var(--fm);font-size:12px;color:var(--muted);opacity:.5}
+
+/* ── DRIVER CARDS ── */
+.drv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(162px,1fr));gap:10px}
+.drv-card{background:var(--card);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:border-color .22s,transform .22s;cursor:default}
+.drv-card:hover{border-color:var(--border2);transform:translateY(-3px)}
+.drv-card.p1{border-top:2px solid var(--gold)}
+.drv-card.p2{border-top:2px solid var(--silver)}
+.drv-card.p3{border-top:2px solid var(--bronze)}
+.drv-img-wrap{position:relative;height:175px;overflow:hidden;background:linear-gradient(160deg,var(--card2),var(--bg2))}
+.drv-img{width:100%;height:100%;object-fit:cover;object-position:top center;filter:grayscale(8%) contrast(1.05) saturate(.9);transition:filter .3s,transform .3s}
+.drv-card:hover .drv-img{filter:grayscale(0%) contrast(1.1) saturate(1.1);transform:scale(1.04)}
+.drv-num{position:absolute;bottom:-2px;right:5px;font-family:var(--ff);font-size:70px;font-weight:900;line-height:1;color:#fff;-webkit-text-stroke:2px rgba(10,12,30,0.9);paint-order:stroke fill;text-shadow:0 2px 8px rgba(0,0,0,0.5);pointer-events:none;z-index:1}
+.drv-card:hover .drv-num{-webkit-text-stroke-color:rgba(10,12,30,0.6)}
+.drv-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--ff);font-size:44px;font-weight:900;color:rgba(255,255,255,0.06)}
+.drv-pos{position:absolute;top:8px;left:8px;font-family:var(--fm);font-size:12px;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.09);border-radius:4px;padding:2px 6px;color:var(--muted2);z-index:2}
+.drv-card.p1 .drv-pos{color:var(--gold);border-color:rgba(245,197,24,.3)}
+.drv-card.p2 .drv-pos{color:var(--silver);border-color:rgba(168,180,194,.3)}
+.drv-card.p3 .drv-pos{color:var(--bronze);border-color:rgba(200,117,51,.3)}
+.drv-wins-badge{position:absolute;top:8px;right:8px;font-family:var(--fm);font-size:12px;background:rgba(232,0,15,0.85);color:#fff;border-radius:4px;padding:2px 5px;z-index:2}
+.drv-tbar{height:2px;width:100%}
+.drv-info{padding:10px 13px 13px}
+.drv-name{font-family:var(--ff);font-size:20px;font-weight:700;line-height:1.15}
+.drv-team{font-family:var(--fm);font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:2px;text-transform:uppercase}
+.drv-bottom{display:flex;align-items:baseline;justify-content:space-between;margin-top:8px}
+.drv-pts{font-family:var(--fm);font-size:24px;font-weight:500;color:#fff}
+.drv-pts-lbl{font-family:var(--fm);font-size:12px;color:var(--muted)}
+.drv-bar-bg{margin-top:7px;height:2px;background:rgba(255,255,255,0.06);border-radius:1px}
+.drv-bar{height:100%;border-radius:1px}
+
+/* ── TEAMS / CARS ── */
+.teams-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.team-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .25s,transform .25s,box-shadow .25s;cursor:default}
+.team-card:hover{border-color:var(--border2);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.team-card.tc1{border-bottom:2px solid var(--gold)}
+.team-card.tc2{border-bottom:2px solid var(--silver)}
+.team-card.tc3{border-bottom:2px solid var(--bronze)}
+
+/* Car image — full width, top of card */
+.team-car-wrap{position:relative;width:100%;height:170px;overflow:hidden;background:linear-gradient(160deg,var(--bg2) 0%,var(--card2) 100%);flex-shrink:0}
+.team-car-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 55%,var(--card) 100%);pointer-events:none}
+.team-car-bg{position:absolute;inset:6% 4%;background-size:contain;background-repeat:no-repeat;background-position:center center;filter:contrast(1.06) saturate(1.1);transition:transform .55s ease,filter .55s}
+.team-card:hover .team-car-bg{transform:scale(1.05);filter:contrast(1.1) saturate(1.2)}
+.team-car-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--ff);font-size:48px;font-weight:900;color:rgba(255,255,255,0.04)}
+
+/* Position badge overlaid on image */
+.team-pos-badge{position:absolute;top:10px;left:10px;font-family:var(--fm);font-size:12px;letter-spacing:1.5px;color:var(--muted2);background:rgba(7,7,13,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:3px 8px;z-index:2}
+.team-card.tc1 .team-pos-badge{color:var(--gold);border-color:rgba(245,197,24,.3)}
+.team-card.tc2 .team-pos-badge{color:var(--silver);border-color:rgba(168,180,194,.3)}
+.team-card.tc3 .team-pos-badge{color:var(--bronze);border-color:rgba(200,117,51,.3)}
+
+/* Team color stripe overlaid on image top edge */
+.team-color-bar{position:absolute;top:0;left:0;right:0;height:3px;z-index:2}
+
+/* Info section — 2-row layout with larger typography */
+.team-info{padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.team-row1{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.team-name{font-family:var(--ff);font-size:28px;font-weight:900;letter-spacing:.2px;line-height:1}
+.team-pts-block{display:flex;align-items:baseline;gap:4px;flex-shrink:0}
+.team-pts{font-family:var(--fm);font-size:34px;font-weight:500;color:#fff;line-height:1}
+.team-pts-lbl{font-family:var(--fm);font-size:12px;color:var(--muted)}
+.team-row2{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding-top:10px;border-top:1px solid var(--border)}
+.team-drivers{display:flex;flex-direction:column;gap:6px}
+.team-drv{font-family:var(--fm);font-size:12px;color:var(--muted2);display:flex;align-items:center;gap:7px;letter-spacing:.3px}
+.team-drv::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--drv-col,#666);flex-shrink:0}
+.team-stats{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.team-stat{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.team-stat-val{font-family:var(--ff);font-size:26px;font-weight:900;line-height:1;color:#fff}
+.team-stat-lbl{font-family:var(--fm);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+.team-stat-sep{width:1px;height:20px;background:var(--border)}
+
+/* ── CALENDAR ── */
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:10px}
+.race-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 15px;transition:border-color .2s,transform .2s;cursor:default}
+.race-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.race-card.done{opacity:.85;border-top-width:2px}
+.race-card.next-r{border-color:rgba(232,0,15,.45);box-shadow:0 0 28px rgba(232,0,15,.07)}
+.race-card.upcoming{opacity:.42}
+.race-rnd{font-family:var(--fm);font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.race-flag{font-size:24px;margin:6px 0 4px}
+.race-name{font-family:var(--ff);font-size:18px;font-weight:700;line-height:1.2}
+.race-cir{font-family:var(--fm);font-size:12px;color:var(--muted);margin-top:2px}
+.race-dt{font-family:var(--fm);font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:1px}
+.race-tag{display:inline-block;font-family:var(--fm);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:3px;margin-top:6px}
+.rtag-done{background:rgba(245,197,24,.1);color:var(--gold)}
+.rtag-next{background:var(--red);color:#fff}
+.rtag-soon{background:rgba(255,255,255,.05);color:var(--muted)}
+.podium-wrap{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.pod-row{display:flex;align-items:center;gap:5px;font-family:var(--fm);font-size:12px;margin-top:3px;color:var(--muted2)}
+.pod-m{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.m1{background:var(--gold);color:#000}.m2{background:var(--silver);color:#000}.m3{background:var(--bronze);color:#fff}
+
+/* ── STANDINGS ── */
+.std-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.std-cap{font-family:var(--fm);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+
+/* Driver standing rows */
+.srow{display:grid;grid-template-columns:24px 32px 1fr 52px 36px;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;transition:background .15s}
+.srow:hover{background:rgba(255,255,255,.018)}
+.spos{font-family:var(--fm);font-size:13px;color:var(--muted);text-align:center;line-height:1}
+.spos.g{color:var(--gold)}.spos.s{color:var(--silver)}.spos.b{color:var(--bronze)}
+.sthumb{width:28px;height:28px;border-radius:50%;overflow:hidden;background:var(--bg2);border:1px solid var(--border);flex-shrink:0}
+.sthumb img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.smid{}
+.sname{font-family:var(--ff);font-size:18px;font-weight:600;line-height:1.1;display:flex;align-items:center;gap:5px}
+.sname.g{color:var(--gold)}.sname.s{color:var(--silver)}.sname.b{color:var(--bronze)}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sbar-bg{height:2px;background:rgba(255,255,255,.06);border-radius:1px;margin-top:5px}
+.sbar{height:100%;border-radius:1px}
+.spts{font-family:var(--fm);font-size:16px;font-weight:500;color:#fff;text-align:right}
+.spts.g{color:var(--gold)}
+.sgap{font-family:var(--fm);font-size:12px;color:var(--muted);text-align:right;line-height:1.1}
+.sgap.leader{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--red)}
+
+/* Constructor standing rows */
+.crow{display:grid;grid-template-columns:24px 4px 1fr 52px 36px;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;transition:background .15s}
+.crow:hover{background:rgba(255,255,255,.018)}
+.cpos{font-family:var(--fm);font-size:13px;color:var(--muted);text-align:center}
+.cpos.g{color:var(--gold)}.cpos.s{color:var(--silver)}.cpos.b{color:var(--bronze)}
+.cstripe{width:3px;border-radius:2px;align-self:stretch;min-height:28px}
+.cmid{}
+.cname{font-family:var(--ff);font-size:18px;font-weight:600}
+.cname.g{color:var(--gold)}.cname.s{color:var(--silver)}.cname.b{color:var(--bronze)}
+.cbar-bg{height:2px;background:rgba(255,255,255,.06);border-radius:1px;margin-top:5px}
+.cbar{height:100%;border-radius:1px}
+.cpts{font-family:var(--fm);font-size:16px;font-weight:500;color:#fff;text-align:right}
+.cpts.g{color:var(--gold)}
+.cgap{font-family:var(--fm);font-size:12px;color:var(--muted);text-align:right}
+.cgap.leader{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--red)}
+
+/* ── SKELETON / LOADING ── */
+.sk{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:200% 100%;animation:sk 1.5s infinite;border-radius:5px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.spin{width:14px;height:14px;border:1.5px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:44px;font-family:var(--fm);font-size:12px;letter-spacing:2px;color:var(--muted)}
+
+/* ── FADE IN ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fadeUp .45s ease both}
+.fi:nth-child(1){animation-delay:.04s}.fi:nth-child(2){animation-delay:.08s}.fi:nth-child(3){animation-delay:.12s}
+.fi:nth-child(4){animation-delay:.16s}.fi:nth-child(5){animation-delay:.20s}.fi:nth-child(6){animation-delay:.24s}
+.fi:nth-child(7){animation-delay:.28s}.fi:nth-child(8){animation-delay:.32s}.fi:nth-child(9){animation-delay:.36s}
+.fi:nth-child(10){animation-delay:.40s}.fi:nth-child(11){animation-delay:.44s}.fi:nth-child(12){animation-delay:.48s}
+.fi:nth-child(n+13){animation-delay:.52s}
+
+footer{border-top:1px solid var(--border);padding:22px 32px;max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:var(--fm);font-size:12px;letter-spacing:1px;color:var(--muted)}
+footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border);padding-bottom:1px}
+
+/* ── DRIVER SIDEBAR ── */
+.sb-overlay{position:fixed;inset:0;background:rgba(0,0,0,0);backdrop-filter:blur(0px);z-index:200;pointer-events:none;transition:background .35s,backdrop-filter .35s}
+.sb-overlay.open{background:rgba(0,0,0,.55);backdrop-filter:blur(4px);pointer-events:all}
+.sb{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:100vw;background:var(--card2);border-left:1px solid var(--border);z-index:201;transform:translateX(100%);transition:transform .4s cubic-bezier(.22,.61,.36,1);display:flex;flex-direction:column;overflow:hidden}
+.sb.open{transform:translateX(0)}
+.sb-hero{position:relative;height:400px;flex-shrink:0;overflow:hidden;background:linear-gradient(160deg,#0a0a18,#12121e)}
+.sb-hero-img{width:100%;height:100%;object-fit:cover;object-position:top center;filter:saturate(1.1) contrast(1.05)}
+.sb-hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 35%,var(--card2) 100%)}
+.sb-hero-num{position:absolute;bottom:-14px;right:12px;font-family:var(--ff);font-size:130px;font-weight:900;line-height:1;color:#fff;-webkit-text-stroke:2px rgba(10,12,30,.9);paint-order:stroke fill;text-shadow:0 4px 20px rgba(0,0,0,.4);opacity:.18}
+.sb-hero-logo{position:absolute;top:14px;left:16px;z-index:2;width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+.sb-hero-pts{position:absolute;bottom:14px;left:16px;z-index:2}
+.sb-hero-pts-val{font-family:var(--ff);font-size:34px;font-weight:900;line-height:1;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.sb-hero-pts-lbl{font-family:var(--fm);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:3px}
+.sb-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .2s}
+.sb-close:hover{background:rgba(255,255,255,.15)}
+.sb-color-bar{position:absolute;top:0;left:0;right:0;height:3px;z-index:2}
+.sb-body{padding:14px 20px 18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+.sb-name-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.sb-name{font-family:var(--ff);font-size:36px;font-weight:900;line-height:1;letter-spacing:.3px}
+.sb-team{font-family:var(--fm);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.sb-nat{font-family:var(--fm);font-size:14px;color:var(--muted2)}
+.sb-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:10px;overflow:visible;flex-shrink:0}
+.sb-stat{background:var(--card);padding:9px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.sb-stat:nth-child(1){border-radius:10px 0 0 10px}
+.sb-stat:nth-child(3){border-radius:0 10px 10px 0}
+.sb-stat-val{font-family:var(--ff);font-size:28px;font-weight:900;line-height:1;color:#fff}
+.sb-stat-lbl{font-family:var(--fm);font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:1px}
+.sb-section-title{font-family:var(--fm);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.sb-champs-wrap{background:rgba(245,197,24,.06);border:1px solid rgba(245,197,24,.18);border-radius:10px;padding:10px 14px}
+.sb-champs-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sb-champs-count{font-family:var(--ff);font-size:15px;font-weight:900;color:var(--gold);opacity:.7}
+.sb-champs{display:flex;flex-wrap:nowrap;gap:10px;align-items:center}
+.sb-champ{font-family:var(--ff);font-size:17px;font-weight:900;color:var(--gold);white-space:nowrap}
+.sb-timeline{display:flex;flex-direction:column;gap:0}
+.sb-tl-item{display:flex;gap:12px;position:relative;padding-bottom:10px}
+.sb-tl-item:last-child{padding-bottom:0}
+.sb-tl-item:not(:last-child)::before{content:'';position:absolute;left:6px;top:14px;bottom:0;width:1px;background:var(--border)}
+.sb-tl-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);background:var(--card);flex-shrink:0;margin-top:4px}
+.sb-tl-dot.active{border-color:currentColor;background:currentColor}
+.sb-tl-years{font-family:var(--fm);font-size:12px;color:var(--muted);margin-bottom:2px;letter-spacing:.5px}
+.sb-tl-team{font-family:var(--ff);font-size:20px;font-weight:700;line-height:1}
+.sb-tl-detail{font-family:var(--fm);font-size:14px;color:var(--muted2);margin-top:2px}
+.drv-card.clickable{cursor:pointer}
+.drv-card.clickable:hover{border-color:var(--border2)}
+
+/* ── TEAM SIDEBAR ── */
+.tsb-overlay{position:fixed;inset:0;background:rgba(0,0,0,0);backdrop-filter:blur(0px);z-index:200;pointer-events:none;transition:background .35s,backdrop-filter .35s}
+.tsb-overlay.open{background:rgba(0,0,0,.55);backdrop-filter:blur(4px);pointer-events:all}
+.tsb{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:100vw;background:var(--card2);border-left:1px solid var(--border);z-index:201;transform:translateX(100%);transition:transform .4s cubic-bezier(.22,.61,.36,1);display:flex;flex-direction:column;overflow:hidden}
+.tsb.open{transform:translateX(0)}
+.tsb-hero{position:relative;height:220px;flex-shrink:0;overflow:hidden;background:linear-gradient(160deg,#0a0a18,#12121e)}
+.tsb-hero-car{position:absolute;inset:8% 4%;background-size:contain;background-repeat:no-repeat;background-position:center;filter:contrast(1.05) saturate(1.1);transition:transform .7s ease}
+.tsb.open .tsb-hero-car{transform:scale(1.04)}
+.tsb-hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 25%,var(--card2) 100%)}
+.tsb-hero-logo{position:absolute;top:14px;left:16px;z-index:2;width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
+.tsb-color-bar{position:absolute;top:0;left:0;right:0;height:3px;z-index:2}
+.tsb-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .2s}
+.tsb-close:hover{background:rgba(255,255,255,.15)}
+.tsb-body{padding:14px 20px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.tsb-name{font-family:var(--ff);font-size:28px;font-weight:900;line-height:1;letter-spacing:.3px}
+.tsb-meta{font-family:var(--fm);font-size:12px;color:var(--muted);margin-top:5px;display:flex;flex-direction:column;gap:3px;line-height:1.4}
+.tsb-season{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:10px;overflow:hidden;flex-shrink:0}
+.tsb-season-cell{background:var(--card);padding:10px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.tsb-season-val{font-family:var(--ff);font-size:26px;font-weight:900;line-height:1;color:#fff}
+.tsb-season-lbl{font-family:var(--fm);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);text-align:center}
+.tsb-drivers{display:flex;gap:8px}
+.tsb-driver-chip{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;flex:1;cursor:pointer;transition:border-color .2s,transform .15s}
+.tsb-driver-chip:hover{border-color:var(--border2);transform:translateY(-1px)}
+.tsb-driver-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--bg2);border:2px solid var(--border);flex-shrink:0}
+.tsb-driver-avatar img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.tsb-driver-name{font-family:var(--ff);font-size:15px;font-weight:700;line-height:1.1}
+.tsb-driver-num{font-family:var(--fm);font-size:12px;color:var(--muted);margin-top:2px}
+.tsb-loading{font-family:var(--fm);font-size:11px;color:var(--muted);opacity:.55;letter-spacing:1px}
+/* Driver card championship badge */
+.drv-champ-badge{position:absolute;bottom:8px;left:8px;display:flex;align-items:center;gap:3px;background:rgba(245,197,24,.16);border:1px solid rgba(245,197,24,.42);border-radius:5px;padding:2px 7px;font-family:var(--ff);font-size:13px;font-weight:900;color:var(--gold);z-index:2;white-space:nowrap;backdrop-filter:blur(4px)}
+/* Team sidebar driver champions block */
+.tsb-dchamps-wrap{background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+.tsb-dchamps-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tsb-dchamps-count{font-family:var(--ff);font-size:15px;font-weight:900;color:var(--gold);opacity:.7}
+.tsb-dchamps{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tsb-dchamp-row{display:flex;align-items:center;gap:7px;padding:5px 8px;background:rgba(255,255,255,.03);border-radius:6px}
+.tsb-dchamp-year{font-family:var(--fm);font-size:12px;color:var(--muted2);min-width:34px;flex-shrink:0}
+.tsb-dchamp-name{font-family:var(--ff);font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-card.clickable{cursor:pointer}
+.team-card.clickable:hover{border-color:var(--border2)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1000px){
+  .teams-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:860px){
+  .hero-in{grid-template-columns:1fr}
+  .std-cols{grid-template-columns:1fr}
+  .teams-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  nav .nav-links{display:none}
+  .hero-h1{font-size:clamp(44px,14vw,72px)}
+  .hero-cd{grid-template-columns:repeat(2,1fr)}
+  .drv-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .hero-std-cols{grid-template-columns:1fr}
+  .season-kpis{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <span class="nav-f1">F1</span>
+    <span class="nav-year">2026</span>
+  </div>
+  <div class="nav-links">
+    <a href="#drivers">Drivers</a>
+    <a href="#teams">Teams</a>
+    <a href="#calendar">Calendar</a>
+    <a href="#standings">Standings</a>
+  </div>
+  <div class="nav-status">
+    <div class="status-dot"></div>
+    <span id="status-txt">Loading...</span>
+  </div>
+</nav>
+
+<!-- SEASON TIMELINE (top) -->
+<div class="tl-wrap" style="margin-top:16px">
+  <div class="tl-inner">
+    <div class="tl-cap">
+      <span>Season Progress</span>
+      <span class="tl-cap-right" id="tl-progress">—</span>
+    </div>
+    <div class="tl-track" id="tl-track">
+      <div class="loading" style="padding:16px"><div class="spin"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-in">
+    <div class="hero-left">
+      <div class="hero-tag">Formula One World Championship</div>
+      <h1 class="hero-h1">SEASON<br><em>2026</em></h1>
+      <div class="hero-sub">22 Grands Prix · March — December</div>
+      <div class="hero-next" id="hero-next">
+        <div class="hero-next-lbl">Next Race</div>
+        <div class="hero-next-race">
+          <span class="hero-next-flag" id="hero-next-flag">⏳</span>
+          <span class="hero-next-name" id="hero-next-name">—</span>
+        </div>
+        <div class="hero-next-sub" id="hero-next-sub">—</div>
+        <div class="hero-cd" id="hero-cd"></div>
+      </div>
+    </div>
+    <div class="hero-std-cols">
+      <div>
+        <div class="hstd-cap">Drivers' Championship</div>
+        <div class="hstd-scroll" id="hero-drv-std"><div class="sk" style="height:200px;border-radius:6px"></div></div>
+      </div>
+      <div>
+        <div class="hstd-cap">Constructors</div>
+        <div class="hstd-scroll" id="hero-con-std"><div class="sk" style="height:200px;border-radius:6px"></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- DRIVERS -->
+<div class="sec" id="drivers">
+  <div class="sec-hd">
+    <div class="sec-t">2026 Season Drivers</div>
+    <div class="sec-m" id="drv-meta">—</div>
+  </div>
+  <div class="drv-grid" id="drv-grid">
+    <div class="drv-card" style="height:248px"><div class="sk" style="height:100%"></div></div>
+    <div class="drv-card" style="height:248px"><div class="sk" style="height:100%"></div></div>
+    <div class="drv-card" style="height:248px"><div class="sk" style="height:100%"></div></div>
+    <div class="drv-card" style="height:248px"><div class="sk" style="height:100%"></div></div>
+    <div class="drv-card" style="height:248px"><div class="sk" style="height:100%"></div></div>
+    <div class="drv-card" style="height:248px"><div class="sk" style="height:100%"></div></div>
+  </div>
+</div>
+
+<!-- TEAMS -->
+<div class="sec" id="teams">
+  <div class="sec-hd">
+    <div class="sec-t">2026 Teams & Cars</div>
+    <div class="sec-m" id="teams-meta">11 teams</div>
+  </div>
+  <div class="teams-grid" id="teams-grid">
+    <div class="loading"><div class="spin"></div>Loading...</div>
+  </div>
+</div>
+
+<!-- CALENDAR -->
+<div class="sec" id="calendar">
+  <div class="sec-hd">
+    <div class="sec-t">Grand Prix Calendar</div>
+    <div class="sec-m" id="cal-meta">22 rounds</div>
+  </div>
+  <div class="cal-grid" id="cal-grid"><div class="loading"><div class="spin"></div>Loading...</div></div>
+</div>
+
+<!-- SEASON SUMMARY -->
+<div class="sec" id="standings">
+  <div class="sec-hd">
+    <div class="sec-t">Season Standings</div>
+    <div class="sec-m" id="std-meta">live data</div>
+  </div>
+  <div class="season-kpis" id="season-kpis">
+    <div class="season-kpi"><div class="sk" style="width:180px;height:40px;border-radius:4px;margin-bottom:10px"></div><div class="season-kpi-lbl">Leader</div></div>
+    <div class="season-kpi"><div class="sk" style="width:80px;height:40px;border-radius:4px;margin-bottom:10px"></div><div class="season-kpi-lbl">Points</div></div>
+    <div class="season-kpi"><div class="sk" style="width:80px;height:40px;border-radius:4px;margin-bottom:10px"></div><div class="season-kpi-lbl">Races</div></div>
+    <div class="season-kpi"><div class="sk" style="width:140px;height:40px;border-radius:4px;margin-bottom:10px"></div><div class="season-kpi-lbl">Constructor</div></div>
+  </div>
+</div>
+
+<footer>
+  <span>F1 2026 Season Tracker</span>
+  <span><span>Data</span>: <a href="https://jolpi.ca" target="_blank">Jolpica F1 API</a> &nbsp;·&nbsp; <span>Photos</span>: Formula1.com CDN</span>
+</footer>
+
+<!-- DRIVER SIDEBAR -->
+<div class="sb-overlay" id="sb-overlay"></div>
+<div class="sb" id="driver-sb">
+  <div class="sb-color-bar" id="sb-color-bar"></div>
+  <div class="sb-hero">
+    <img class="sb-hero-img" id="sb-hero-img" src="" alt="">
+    <div class="sb-hero-grad"></div>
+    <div class="sb-hero-num" id="sb-hero-num"></div>
+    <img class="sb-hero-logo" id="sb-hero-logo" src="" alt="" style="display:none">
+    <div class="sb-hero-pts" id="sb-hero-pts"></div>
+    <div class="sb-close" id="sb-close">✕</div>
+  </div>
+  <div class="sb-body">
+    <div>
+      <div class="sb-name" id="sb-name"></div>
+      <div class="sb-team" id="sb-team"></div>
+      <div class="sb-nat" id="sb-nat"></div>
+    </div>
+    <div class="sb-champs-wrap" id="sb-champs-wrap">
+      <div class="sb-champs-hd">
+        <div class="sb-section-title" style="margin-bottom:0">World Championships</div>
+        <div class="sb-champs-count" id="sb-champs-count"></div>
+      </div>
+      <div class="sb-champs" id="sb-champs"></div>
+    </div>
+    <div>
+      <div class="sb-section-title">Season 2026</div>
+      <div class="tsb-season" id="sb-season"></div>
+    </div>
+    <div>
+      <div class="sb-section-title" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <span>Career Stats</span><span class="tsb-loading" id="sb-stats-loading"></span>
+      </div>
+      <div class="sb-stats-grid" id="sb-stats-grid"></div>
+    </div>
+    <div>
+      <div class="sb-section-title">Career</div>
+      <div class="sb-timeline" id="sb-timeline"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM SIDEBAR -->
+<div class="tsb-overlay" id="tsb-overlay"></div>
+<div class="tsb" id="team-sb">
+  <div class="tsb-color-bar" id="tsb-color-bar"></div>
+  <div class="tsb-hero" id="tsb-hero">
+    <div class="tsb-hero-car" id="tsb-hero-car"></div>
+    <div class="tsb-hero-grad"></div>
+    <img class="tsb-hero-logo" id="tsb-hero-logo" src="" alt="">
+    <div class="tsb-close" id="tsb-close2">✕</div>
+  </div>
+  <div class="tsb-body">
+    <div>
+      <div class="tsb-name" id="tsb-name"></div>
+      <div class="tsb-meta" id="tsb-meta"></div>
+    </div>
+    <div class="sb-champs-wrap" id="tsb-champs-wrap">
+      <div class="sb-champs-hd">
+        <div class="sb-section-title" style="margin-bottom:0">Constructor Championships</div>
+        <div class="sb-champs-count" id="tsb-champs-count"></div>
+      </div>
+      <div class="sb-champs" id="tsb-champs"></div>
+    </div>
+    <div class="tsb-dchamps-wrap" id="tsb-dchamps-wrap">
+      <div class="tsb-dchamps-hd">
+        <div class="sb-section-title" style="margin-bottom:0">Driver Champions</div>
+        <div class="tsb-dchamps-count" id="tsb-dchamps-count"></div>
+      </div>
+      <div class="tsb-dchamps" id="tsb-dchamps"></div>
+    </div>
+    <div>
+      <div class="sb-section-title">Season 2026</div>
+      <div class="tsb-season" id="tsb-season"></div>
+    </div>
+    <div>
+      <div class="sb-section-title" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <span>Career Stats</span><span class="tsb-loading" id="tsb-stats-loading"></span>
+      </div>
+      <div class="sb-stats-grid" id="tsb-stats-grid"></div>
+    </div>
+    <div>
+      <div class="sb-section-title">Current Drivers</div>
+      <div class="tsb-drivers" id="tsb-drivers"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API     = 'https://api.jolpi.ca/ergast/f1';
+const CDN_NEW = 'https://media.formula1.com/image/upload';
+const CDN_VER = 'v1740000000';
+
+/* ── Team colors by Ergast constructorId ── */
+const TEAM_COLOR = {
+  mercedes:'#00D2BE', ferrari:'#E8002D',
+  red_bull:'#3671C6', mclaren:'#FF8000',
+  williams:'#64C4FF', rb:'#6692FF', racing_bulls:'#6692FF',
+  aston_martin:'#358C75', haas:'#B6BABD',
+  alpine:'#FF87BC',
+  sauber:'#C0272D', audi:'#C0272D',
+  cadillac:'#1E90FF',
+};
+
+/* ── Driver info: Ergast driverId → local file, CDN code/team, car number ── */
+const DRV = {
+  russell:        {f:'George_Russell',    c:'georus01', t:'mercedes',      n:'63'},
+  antonelli:      {f:'Kimi_Antonelli',    c:'andant01', t:'mercedes',      n:'12'},
+  leclerc:        {f:'Charles_Leclerc',   c:'chalec01', t:'ferrari',       n:'16'},
+  hamilton:       {f:'Lewis_Hamilton',    c:'lewham01', t:'ferrari',       n:'44'},
+  norris:         {f:'Lando_Norris',      c:'lannor01', t:'mclaren',       n:'1' },
+  piastri:        {f:'Oscar_Piastri',     c:'oscpia01', t:'mclaren',       n:'81'},
+  max_verstappen: {f:'Max_Verstappen',    c:'maxver01', t:'redbullracing', n:'33'},
+  hadjar:         {f:'Isack_Hadjar',      c:'isahad01', t:'redbullracing', n:'22'},
+  alonso:         {f:'Fernando_Alonso',   c:'feralo01', t:'astonmartin',   n:'14'},
+  stroll:         {f:'Lance_Stroll',      c:'lanstr01', t:'astonmartin',   n:'18'},
+  hulkenberg:     {f:'Nico_Hulkenberg',   c:'nichul01', t:'audi',          n:'27'},
+  bortoleto:      {f:'Gabriel_Bortoleto', c:'gabbor01', t:'audi',          n:'5' },
+  bearman:        {f:'Oliver_Bearman',    c:'olibea01', t:'haasf1team',    n:'87'},
+  ocon:           {f:'Esteban_Ocon',      c:'estoco01', t:'haasf1team',    n:'31'},
+  gasly:          {f:'Pierre_Gasly',      c:'piegas01', t:'alpine',        n:'10'},
+  colapinto:      {f:'Franco_Colapinto',  c:'fracol01', t:'alpine',        n:'43'},
+  albon:          {f:'Alexander_Albon',   c:'alealb01', t:'williams',      n:'23'},
+  sainz:          {f:'Carlos_Sainz',      c:'carsai01', t:'williams',      n:'55'},
+  lawson:         {f:'Liam_Lawson',       c:'lialaw01', t:'racingbulls',   n:'30'},
+  arvid_lindblad: {f:'Arvid_Lindblad',    c:'arvlin01', t:'racingbulls',   n:'6' },
+  bottas:         {f:'Valtteri_Bottas',   c:'valbot01', t:'cadillac',      n:'77'},
+  perez:          {f:'Sergio_Perez',      c:'serper01', t:'cadillac',      n:'11'},
+};
+
+/* ── Team → local car filename ── */
+const TEAM_CAR = {
+  mercedes:'Mercedes', ferrari:'Ferrari',
+  red_bull:'Red_Bull', redbullracing:'Red_Bull',
+  mclaren:'McLaren', williams:'Williams',
+  rb:'Racing_Bulls', racing_bulls:'Racing_Bulls',
+  aston_martin:'Aston_Martin', astonmartin:'Aston_Martin',
+  haas:'Haas', haasf1team:'Haas',
+  alpine:'Alpine',
+  sauber:'Audi', audi:'Audi',
+  cadillac:'Cadillac',
+};
+
+const FLAGS = {
+  Australia:'🇦🇺', China:'🇨🇳', Japan:'🇯🇵', USA:'🇺🇸',
+  Italy:'🇮🇹', Monaco:'🇲🇨', Spain:'🇪🇸', Canada:'🇨🇦',
+  Austria:'🇦🇹', 'Great Britain':'🇬🇧', Belgium:'🇧🇪', Hungary:'🇭🇺',
+  Netherlands:'🇳🇱', Singapore:'🇸🇬', Azerbaijan:'🇦🇿',
+  Mexico:'🇲🇽', Brazil:'🇧🇷', Qatar:'🇶🇦', 'Abu Dhabi':'🇦🇪',
+  Bahrain:'🇧🇭', 'Saudi Arabia':'🇸🇦',
+};
+function flagOf(country, name=''){
+  if(name.includes('Las Vegas')||name.includes('Miami')) return '🇺🇸';
+  return FLAGS[country]||'🏁';
+}
+function pad(n){return String(n).padStart(2,'0')}
+
+/* Base dir — used as fallback; v2 serves via HTTP so relative paths work */
+const BASE = window.location.href.replace(/[^/]*$/, '');
+
+function localPhoto(id){
+  const d=DRV[id]; return d?`photos/drivers/${d.f}.webp`:null;
+}
+function cdnPhoto(id){
+  const d=DRV[id]; if(!d) return null;
+  return `${CDN_NEW}/c_fill,w_440/q_auto/${CDN_VER}/common/f1/2026/${d.t}/${d.c}/2026${d.t}${d.c}right.webp`;
+}
+function carPhoto(cid){
+  const name=TEAM_CAR[cid]; return name?`photos/cars/${name}.webp`:null;
+}
+function drvColor(cid){ return TEAM_COLOR[cid]||'#666'; }
+
+
+
+/* ── Countdown ── */
+let nextTs=null;
+function tick(){
+  if(!nextTs) return;
+  const diff=Math.max(0,nextTs-Date.now());
+  const d=Math.floor(diff/86400000),h=Math.floor(diff%86400000/3600000),
+        m=Math.floor(diff%3600000/60000),s=Math.floor(diff%60000/1000);
+  const el=document.getElementById('hero-cd');
+  const cdLabels=['Days','Hours','Minutes','Sec'];
+  if(el) el.innerHTML=cdLabels.map((l,i)=>
+    `<div class="hero-cd-b"><span class="hero-cd-n">${pad([d,h,m,s][i])}</span><span class="hero-cd-l">${l}</span></div>`).join('');
+}
+setInterval(tick,1000);
+
+/* ── Main init ── */
+async function init(){
+  try{
+    const [schedR,drvR,conR,r1R,r2R,r3R] = await Promise.all([
+      fetch(`${API}/2026.json`),
+      fetch(`${API}/2026/driverStandings.json`),
+      fetch(`${API}/2026/constructorStandings.json`),
+      fetch(`${API}/2026/results/1.json?limit=100`),
+      fetch(`${API}/2026/results/2.json?limit=100`),
+      fetch(`${API}/2026/results/3.json?limit=100`),
+    ]);
+    const [sched,drvD,conD,r1D,r2D,r3D] = await Promise.all([
+      schedR.json(),drvR.json(),conR.json(),r1R.json(),r2R.json(),r3R.json()
+    ]);
+
+    const races   = sched.MRData.RaceTable.Races;
+    const drivers = drvD.MRData.StandingsTable.StandingsLists[0]?.DriverStandings||[];
+    const constrs = conD.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings||[];
+
+    /* build podium map: round → [P1, P2, P3] */
+    const pm={};
+    [[r1D,0],[r2D,1],[r3D,2]].forEach(([data,pos])=>{
+      data.MRData.RaceTable.Races.forEach(r=>{
+        if(!pm[r.round]) pm[r.round]=[null,null,null];
+        const res=r.Results?.[0];
+        if(res) pm[r.round][pos]={given:res.Driver.givenName,name:res.Driver.familyName,id:res.Driver.driverId,cid:res.Constructor?.constructorId};
+      });
+    });
+    /* winner team color map: round → constructorId */
+    const winTeam={};
+    r1D.MRData.RaceTable.Races.forEach(r=>{
+      const res=r.Results?.[0];
+      if(res) winTeam[r.round]=res.Constructor?.constructorId;
+    });
+
+    /* next race */
+    const now=Date.now();
+    const next=races.find(r=>{
+      const ts=new Date(r.date+(r.time?'T'+r.time:'T14:00:00Z')).getTime();
+      return ts > now-3600000;
+    });
+    if(next){
+      nextTs=new Date(next.date+(next.time?'T'+next.time:'T14:00:00Z')).getTime();
+      document.getElementById('hero-next-flag').textContent=flagOf(next.Circuit.Location.country,next.raceName);
+      document.getElementById('hero-next-name').textContent=next.raceName.replace(' Grand Prix','').replace('Grand Prix of ','');
+      document.getElementById('hero-next-sub').textContent=
+        `Round ${next.round} · `+new Date(next.date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+      tick();
+    }
+
+    /* podium maps */
+    const driverPodiums={};
+    const teamPodiums={};
+    const teamWinsMap={};
+    Object.values(pm).forEach(positions=>{
+      positions.forEach((p,idx)=>{
+        if(!p) return;
+        driverPodiums[p.id]=(driverPodiums[p.id]||0)+1;
+        if(p.cid){
+          teamPodiums[p.cid]=(teamPodiums[p.cid]||0)+1;
+          if(idx===0) teamWinsMap[p.cid]=(teamWinsMap[p.cid]||0)+1;
+        }
+      });
+    });
+
+    renderTimeline(races,pm,drivers);
+    renderHeroStandings(drivers,constrs);
+    /* sync driver scroll height to constructor block height */
+    requestAnimationFrame(()=>{
+      const conH=document.getElementById('hero-con-std').offsetHeight;
+      if(conH>0) document.getElementById('hero-drv-std').style.maxHeight=conH+'px';
+    });
+    renderDrivers(drivers,driverPodiums);
+    renderTeams(constrs,drivers,teamPodiums,teamWinsMap);
+    renderCalendar(races,pm,winTeam);
+    renderSeasonKpis(drivers,constrs,races,now);
+
+    document.getElementById('status-txt').textContent='Data is live';
+  }catch(e){
+    console.error(e);
+    document.getElementById('status-txt').textContent='API Error';
+  }
+}
+
+/* ── Hero Standings ── */
+function renderHeroStandings(drivers,constrs){
+  const maxD=parseFloat(drivers[0]?.points||1);
+  const maxC=parseFloat(constrs[0]?.points||1);
+
+  document.getElementById('hero-drv-std').innerHTML=drivers.map((d,i)=>{
+    const pos=i+1, pc=pos===1?'g':pos===2?'s':pos===3?'b':'';
+    const cid=d.Constructors[0]?.constructorId;
+    const col=drvColor(cid);
+    const pts=parseFloat(d.points);
+    const barW=Math.round(pts/maxD*100);
+    return `<div class="hstd-row fi">
+      <div class="hstd-pos ${pc}">${pos}</div>
+      <div class="hstd-dot" style="background:${col}"></div>
+      <div class="hstd-name">${d.Driver.familyName}</div>
+      <div class="hstd-pts ${pc}">${pts}</div>
+    </div>
+    <div class="hstd-bar-bg"><div class="hstd-bar" style="width:${barW}%;background:${col}"></div></div>`;
+  }).join('');
+
+  document.getElementById('hero-con-std').innerHTML=constrs.map((c,i)=>{
+    const pos=i+1, pc=pos===1?'g':pos===2?'s':pos===3?'b':'';
+    const cid=c.Constructor.constructorId;
+    const col=drvColor(cid);
+    const pts=parseFloat(c.points);
+    const barW=Math.round(pts/maxC*100);
+    return `<div class="hstd-row fi">
+      <div class="hstd-pos ${pc}">${pos}</div>
+      <div class="hstd-dot" style="background:${col}"></div>
+      <div class="hstd-name">${c.Constructor.name}</div>
+      <div class="hstd-pts ${pc}">${pts}</div>
+    </div>
+    <div class="hstd-bar-bg"><div class="hstd-bar" style="width:${barW}%;background:${col}"></div></div>`;
+  }).join('');
+}
+
+/* ── Season Timeline ── */
+function renderTimeline(races,pm,drivers){
+  const now=Date.now();
+  const track=document.getElementById('tl-track');
+  track.innerHTML='';
+  let doneCount=0;
+  races.forEach(r=>{
+    const t=new Date(r.date).getTime();
+    const isDone=t<now-86400000;
+    const isNext=!isDone&&t<now+86400000*14;
+    if(isDone) doneCount++;
+    const cls=isDone?'done':isNext?'nxt':'';
+    const fl=flagOf(r.Circuit.Location.country,r.raceName);
+    const winner=pm[r.round]?.[0];
+    const winLabel=isDone&&winner?winner.name.slice(0,5):'';
+    const cntryLabel=r.Circuit.Location.country.slice(0,3).toUpperCase();
+    const el=document.createElement('div');
+    el.className=`tl-stop ${cls}`;
+    el.title=`R${r.round} — ${r.raceName}${winner?' · '+winner.given.charAt(0)+'. '+winner.name:''}`;
+    el.innerHTML=`
+      <div class="tl-dot">${pad(r.round)}</div>
+      <div class="tl-fl">${fl}</div>
+      <div class="${isDone?'tl-win':'tl-label'}">${isDone?winLabel:isNext?'◉':cntryLabel}</div>`;
+    track.appendChild(el);
+  });
+  document.getElementById('tl-progress').textContent=`${doneCount} / ${races.length} completed`;
+}
+
+/* ── Driver cards ── */
+function renderDrivers(drivers,driverPodiums={}){
+  const max=parseFloat(drivers[0]?.points||1);
+  const grid=document.getElementById('drv-grid');
+  grid.innerHTML='';
+  drivers.forEach((d,i)=>{
+    const id=d.Driver.driverId;
+    const pos=parseInt(d.position);
+    const pts=parseFloat(d.points);
+    const wins=parseInt(d.wins||0);
+    const cid=d.Constructors[0]?.constructorId||'';
+    const col=drvColor(cid);
+    const local=localPhoto(id), cdn=cdnPhoto(id);
+    const num=d.Driver.permanentNumber||DRV[id]?.n||'';
+    const pc=pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+
+    const podiums=driverPodiums[id]||0;
+    const src=local||cdn;
+    const hasSidebar = !!DRIVER_DATA[id];
+    const champCount = DRIVER_DATA[id]?.championships?.length || 0;
+    const el=document.createElement('div');
+    el.className=`drv-card ${pc} fi${hasSidebar?' clickable':''}`;
+    if(hasSidebar){ el.setAttribute('data-driver',id); el.addEventListener('click',()=>openSidebar(id,col,{wins,pts,podiums,pos,number:num})); }
+    el.innerHTML=`
+      <div class="drv-img-wrap">
+        <div class="drv-fallback" style="display:${src?'none':'flex'}">${d.Driver.familyName.slice(0,2).toUpperCase()}</div>
+        ${num?`<div class="drv-num">${num}</div>`:''}
+        <div class="drv-pos">P${pos}</div>
+        ${wins>0?`<div class="drv-wins-badge">🏆 ${wins}</div>`:''}
+        ${champCount>0?`<div class="drv-champ-badge">🏆 ×${champCount}</div>`:''}
+      </div>
+      <div class="drv-tbar" style="background:${col}"></div>
+      <div class="drv-info">
+        <div class="drv-name">${d.Driver.givenName.split(' ').pop()} ${d.Driver.familyName}</div>
+        <div class="drv-team">${d.Constructors[0]?.name||''}</div>
+        <div class="drv-bottom"><span class="drv-pts">${pts}</span><span class="drv-pts-lbl">PTS</span></div>
+        <div class="drv-bar-bg"><div class="drv-bar" style="width:${Math.round(pts/max*100)}%;background:${col}"></div></div>
+        <div class="drv-stats">
+          <div class="drv-stat"><span class="drv-stat-val" style="color:${col}">${wins}</span><span class="drv-stat-lbl">Wins</span></div>
+          <div class="drv-stat-sep"></div>
+          <div class="drv-stat"><span class="drv-stat-val">${podiums}</span><span class="drv-stat-lbl">Podiums</span></div>
+        </div>
+      </div>`;
+
+    /* Append to live DOM first, then inject photo — ensures Safari file:// loads */
+    grid.appendChild(el);
+
+    if(src){
+      const wrap=el.querySelector('.drv-img-wrap');
+      const fallback=wrap.querySelector('.drv-fallback');
+      const img=document.createElement('img');
+      img.className='drv-img'; img.alt=d.Driver.familyName; img.loading='lazy';
+      img.onerror=function(){
+        if(cdn&&this.src!==cdn){ this.src=cdn; }
+        else{ this.style.display='none'; fallback.style.display='flex'; }
+      };
+      wrap.insertBefore(img, wrap.firstChild); /* in live DOM before src */
+      img.src=src;                              /* src set last */
+    }
+  });
+  document.getElementById('drv-meta').textContent=`${drivers.length} drivers`;
+}
+
+/* ── Teams / Cars ── */
+function renderTeams(constrs,drivers,teamPodiums={},teamWinsMap={}){
+  /* map constructorId → pair of driver names */
+  const teamDrvs={};
+  drivers.forEach(d=>{
+    const cid=d.Constructors[0]?.constructorId;
+    if(!teamDrvs[cid]) teamDrvs[cid]=[];
+    if(teamDrvs[cid].length<2) teamDrvs[cid].push(
+      `${d.Driver.givenName.split(' ').pop()} ${d.Driver.familyName}`
+    );
+  });
+
+  const grid=document.getElementById('teams-grid');
+  grid.innerHTML='';
+
+  constrs.forEach((c,i)=>{
+    const pos=i+1;
+    const cid=c.Constructor.constructorId;
+    const col=drvColor(cid);
+    const pts=parseFloat(c.points);
+    const pc=pos===1?'tc1':pos===2?'tc2':pos===3?'tc3':'';
+    const drvs=teamDrvs[cid]||[];
+    const carSrc=carPhoto(cid);
+    const twins=teamWinsMap[cid]||0;
+    const tpodiums=teamPodiums[cid]||0;
+    const abbr=c.Constructor.name.slice(0,2).toUpperCase();
+
+    const hasTsb = !!TEAM_DATA[cid];
+    const el=document.createElement('div');
+    el.className=`team-card ${pc} fi${hasTsb?' clickable':''}`;
+    if(hasTsb) el.addEventListener('click',()=>openTeamSidebar(cid,{pos,pts,wins:twins,podiums:tpodiums}));
+
+    /* car image section */
+    const carWrap=document.createElement('div');
+    carWrap.className='team-car-wrap';
+    /* color bar at top */
+    const colorBar=document.createElement('div');
+    colorBar.className='team-color-bar';
+    colorBar.style.background=col;
+    carWrap.appendChild(colorBar);
+    /* position badge */
+    const posBadge=document.createElement('div');
+    posBadge.className='team-pos-badge';
+    posBadge.textContent=pad(pos);
+    carWrap.appendChild(posBadge);
+    /* car bg or fallback */
+    if(carSrc){
+      const bgDiv=document.createElement('div');
+      bgDiv.className='team-car-bg';
+      bgDiv.style.backgroundImage=`url("${carSrc}")`;
+      carWrap.appendChild(bgDiv);
+    } else {
+      const fb=document.createElement('div');
+      fb.className='team-car-fallback'; fb.textContent=abbr;
+      carWrap.appendChild(fb);
+    }
+
+    /* info section */
+    const info=document.createElement('div');
+    info.className='team-info';
+    info.innerHTML=`
+      <div class="team-row1">
+        <div class="team-name">${c.Constructor.name}</div>
+        <div class="team-pts-block">
+          <span class="team-pts">${pts}</span>
+          <span class="team-pts-lbl">PTS</span>
+        </div>
+      </div>
+      <div class="team-row2">
+        <div class="team-drivers">
+          ${drvs.map(n=>`<div class="team-drv" style="--drv-col:${col}">${n}</div>`).join('')}
+        </div>
+        <div class="team-stats">
+          <div class="team-stat">
+            <span class="team-stat-val" style="color:${col}">${twins}</span>
+            <span class="team-stat-lbl">Wins</span>
+          </div>
+          <div class="team-stat-sep"></div>
+          <div class="team-stat">
+            <span class="team-stat-val">${tpodiums}</span>
+            <span class="team-stat-lbl">Podiums</span>
+          </div>
+        </div>
+      </div>`;
+
+    el.appendChild(carWrap);
+    el.appendChild(info);
+    grid.appendChild(el);
+  });
+  document.getElementById('teams-meta').textContent=`${constrs.length} teams`;
+}
+
+/* ── Calendar ── */
+function renderCalendar(races,pm,winTeam){
+  const now=Date.now();
+  const grid=document.getElementById('cal-grid');
+  grid.innerHTML='';
+  races.forEach(r=>{
+    const rDate=new Date(r.date).getTime();
+    const done=rDate<now-86400000;
+    const next=!done&&rDate<now+86400000*8;
+    const st=done?'done':next?'next-r':'upcoming';
+    const tc=done?'rtag-done':next?'rtag-next':'rtag-soon';
+    const tt=done?'Done':next?'◉ Next':'Soon';
+    const fl=flagOf(r.Circuit.Location.country,r.raceName);
+    const dt=new Date(r.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    const pod=(pm[r.round]||[]).filter(Boolean);
+
+    const el=document.createElement('div');
+    el.className=`race-card ${st} fi`;
+
+    /* color done cards with winner team color */
+    if(done){
+      const wcid=winTeam?.[r.round];
+      const wcol=wcid?drvColor(wcid):null;
+      if(wcol){
+        el.style.borderTopColor=wcol;
+        el.style.boxShadow=`0 0 22px ${wcol}18`;
+      }
+    }
+
+    el.innerHTML=`
+      <div class="race-rnd">Round ${r.round.padStart(2,'0')}</div>
+      <div class="race-flag">${fl}</div>
+      <div class="race-name">${r.raceName.replace(' Grand Prix','').replace('Grand Prix of ','')}</div>
+      <div class="race-cir">${r.Circuit.circuitName}</div>
+      <div class="race-dt">${dt}</div>
+      <span class="race-tag ${tc}">${tt}</span>
+      ${pod.length?`<div class="podium-wrap">${pod.map((p,i)=>`<div class="pod-row"><div class="pod-m m${i+1}">${i+1}</div>${p.given.charAt(0)}. ${p.name}</div>`).join('')}</div>`:''}`;
+    grid.appendChild(el);
+  });
+  const done=races.filter(r=>new Date(r.date).getTime()<now).length;
+  document.getElementById('cal-meta').textContent=`${done} / ${races.length} done`;
+}
+
+/* ── Season KPIs (bottom summary) ── */
+function renderSeasonKpis(drivers,constrs,races,now){
+  const l=drivers[0], cl=constrs[0];
+  if(!l) return;
+  const done=races.filter(r=>new Date(r.date).getTime()<now).length;
+  const wins=parseInt(l.wins);
+  document.getElementById('season-kpis').innerHTML=`
+    <div class="season-kpi fi">
+      <div class="season-kpi-val">${l.Driver.givenName.split(' ').pop()} ${l.Driver.familyName}</div>
+      <div class="season-kpi-lbl">Championship Leader</div>
+      <div class="season-kpi-sub">${l.Driver.nationality}</div>
+    </div>
+    <div class="season-kpi fi" style="border-top:2px solid var(--gold)">
+      <div class="season-kpi-val" style="color:var(--gold)">${l.points}</div>
+      <div class="season-kpi-lbl">Leader's Points</div>
+      <div class="season-kpi-sub">🏆 ${wins} ${wins===1?'win':'wins'}</div>
+    </div>
+    <div class="season-kpi fi">
+      <div class="season-kpi-val">${done}<span style="font-size:.45em;opacity:.4"> / 22</span></div>
+      <div class="season-kpi-lbl">Races Done</div>
+      <div class="season-kpi-sub">${22-done} remaining</div>
+    </div>
+    <div class="season-kpi fi">
+      <div class="season-kpi-val">${cl?.Constructor?.name||'—'}</div>
+      <div class="season-kpi-lbl">Constructors' Leader</div>
+      <div class="season-kpi-sub">${cl?.points||0} pts</div>
+    </div>`;
+  document.getElementById('std-meta').textContent=
+    'updated '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long'});
+}
+
+init();
+
+/* ── TEAM SIDEBAR DATA & LOGIC ── */
+const TEAM_DATA = {
+  mercedes: {
+    name: 'Mercedes-AMG Petronas',
+    base: '📍 Brackley, United Kingdom',
+    principal: '👤 Toto Wolff',
+    founded: '🗓 2010 (as works team)',
+    jolpicaId: 'mercedes',
+    logo: 'photos/logos/Mercedes.webp',
+    car: 'photos/cars/Mercedes.webp',
+    color: '#00D2BE',
+    driverIds: ['russell', 'antonelli'],
+    driverChamps: [
+      {year:2014,driver:'Hamilton'},{year:2015,driver:'Hamilton'},
+      {year:2016,driver:'Rosberg'},{year:2017,driver:'Hamilton'},
+      {year:2018,driver:'Hamilton'},{year:2019,driver:'Hamilton'},
+      {year:2020,driver:'Hamilton'},
+    ],
+  },
+  ferrari: {
+    name: 'Scuderia Ferrari',
+    base: '📍 Maranello, Italy',
+    principal: '👤 Frédéric Vasseur',
+    founded: '🗓 1950 (F1 debut)',
+    jolpicaId: 'ferrari',
+    logo: 'photos/logos/Ferrari.webp',
+    car: 'photos/cars/Ferrari.webp',
+    color: '#E8000F',
+    driverIds: ['leclerc', 'hamilton'],
+    driverChamps: [
+      {year:1952,driver:'Ascari'},{year:1953,driver:'Ascari'},
+      {year:1956,driver:'Fangio'},{year:1958,driver:'Hawthorn'},
+      {year:1961,driver:'P. Hill'},{year:1964,driver:'Surtees'},
+      {year:1975,driver:'Lauda'},{year:1977,driver:'Lauda'},
+      {year:1979,driver:'Scheckter'},
+      {year:2000,driver:'Schumacher'},{year:2001,driver:'Schumacher'},
+      {year:2002,driver:'Schumacher'},{year:2003,driver:'Schumacher'},
+      {year:2004,driver:'Schumacher'},
+    ],
+  },
+  mclaren: {
+    name: 'McLaren F1 Team',
+    base: '📍 Woking, United Kingdom',
+    principal: '👤 Andrea Stella',
+    founded: '🗓 1966',
+    jolpicaId: 'mclaren',
+    logo: 'photos/logos/McLaren.webp',
+    car: 'photos/cars/McLaren.webp',
+    color: '#FF8000',
+    driverIds: ['norris', 'piastri'],
+    driverChamps: [
+      {year:1974,driver:'Fittipaldi'},{year:1976,driver:'Hunt'},
+      {year:1984,driver:'Lauda'},{year:1985,driver:'Prost'},
+      {year:1988,driver:'Senna'},{year:1989,driver:'Prost'},
+      {year:1990,driver:'Senna'},{year:1991,driver:'Senna'},
+      {year:1998,driver:'Häkkinen'},{year:1999,driver:'Häkkinen'},
+      {year:2025,driver:'Norris'},
+    ],
+  },
+  redbullracing: {
+    name: 'Red Bull Racing',
+    base: '📍 Milton Keynes, United Kingdom',
+    principal: '👤 Christian Horner',
+    founded: '🗓 2005',
+    jolpicaId: 'red_bull',
+    logo: 'photos/logos/Red_Bull.webp',
+    car: 'photos/cars/Red_Bull.webp',
+    color: '#3671C6',
+    driverIds: ['max_verstappen', 'hadjar'],
+    driverChamps: [
+      {year:2010,driver:'Vettel'},{year:2011,driver:'Vettel'},
+      {year:2012,driver:'Vettel'},{year:2013,driver:'Vettel'},
+      {year:2021,driver:'Verstappen'},{year:2022,driver:'Verstappen'},
+      {year:2023,driver:'Verstappen'},{year:2024,driver:'Verstappen'},
+    ],
+  },
+  astonmartin: {
+    name: 'Aston Martin Aramco F1',
+    base: '📍 Silverstone, United Kingdom',
+    principal: '👤 Andy Cowell',
+    founded: '🗓 2021 (rebranded)',
+    jolpicaId: 'aston_martin',
+    logo: 'photos/logos/Aston_Martin.webp',
+    car: 'photos/cars/Aston_Martin.webp',
+    color: '#358C75',
+    driverIds: ['alonso', 'stroll'],
+    driverChamps: [],
+  },
+  alpine: {
+    name: 'BWT Alpine F1 Team',
+    base: '📍 Enstone, United Kingdom',
+    principal: '👤 Oliver Oakes',
+    founded: '🗓 1986 (as Toleman)',
+    jolpicaId: 'alpine',
+    logo: 'photos/logos/Alpine.webp',
+    car: 'photos/cars/Alpine.webp',
+    color: '#0090FF',
+    driverIds: ['gasly', 'colapinto'],
+    driverChamps: [
+      {year:2005,driver:'Alonso'},{year:2006,driver:'Alonso'},
+    ],
+  },
+  williams: {
+    name: 'Williams Racing',
+    base: '📍 Grove, United Kingdom',
+    principal: '👤 James Vowles',
+    founded: '🗓 1977',
+    jolpicaId: 'williams',
+    logo: 'photos/logos/Williams.webp',
+    car: 'photos/cars/Williams.webp',
+    color: '#64C4FF',
+    driverIds: ['albon', 'sainz'],
+    driverChamps: [
+      {year:1980,driver:'Jones'},{year:1982,driver:'K. Rosberg'},
+      {year:1987,driver:'Piquet'},{year:1992,driver:'Mansell'},
+      {year:1993,driver:'Prost'},{year:1994,driver:'Hill'},
+      {year:1996,driver:'Hill'},{year:1997,driver:'Villeneuve'},
+    ],
+  },
+  haasf1team: {
+    name: 'MoneyGram Haas F1 Team',
+    base: '📍 Kannapolis, USA',
+    principal: '👤 Ayao Komatsu',
+    founded: '🗓 2016',
+    jolpicaId: 'haas',
+    logo: 'photos/logos/Haas.webp',
+    car: 'photos/cars/Haas.webp',
+    color: '#B6BABD',
+    driverIds: ['ocon', 'bearman'],
+    driverChamps: [],
+  },
+  audi: {
+    name: 'Stake F1 Team Audi',
+    base: '📍 Hinwil, Switzerland',
+    principal: '👤 Mattia Binotto',
+    founded: '🗓 2026 (as Audi)',
+    jolpicaId: 'sauber',
+    logo: 'photos/logos/Audi.webp',
+    car: 'photos/cars/Audi.webp',
+    color: '#E8002D',
+    driverIds: ['hulkenberg', 'bortoleto'],
+    driverChamps: [],
+  },
+  racingbulls: {
+    name: 'Visa Cash App Racing Bulls',
+    base: '📍 Faenza, Italy',
+    principal: '👤 Laurent Mekies',
+    founded: '🗓 1985 (as Minardi)',
+    jolpicaId: 'alphatauri',
+    logo: 'photos/logos/Racing_Bulls.webp',
+    car: 'photos/cars/Racing_Bulls.webp',
+    color: '#6692FF',
+    driverIds: ['lawson', 'arvid_lindblad'],
+    driverChamps: [],
+  },
+  cadillac: {
+    name: 'Cadillac F1 Team',
+    base: '📍 Concord, USA',
+    principal: '👤 Graeme Lowdon',
+    founded: '🗓 2026 (F1 debut)',
+    jolpicaId: 'cadillac',
+    logo: 'photos/logos/Cadillac.webp',
+    car: 'photos/cars/Cadillac.webp',
+    color: '#3E48FF',
+    driverIds: ['bottas', 'perez'],
+    driverChamps: [],
+  },
+};
+
+/* API constructor ID aliases → TEAM_DATA keys */
+['red_bull','redbullracing'].forEach(k => TEAM_DATA[k] = TEAM_DATA.redbullracing);
+['aston_martin','astonmartin'].forEach(k => TEAM_DATA[k] = TEAM_DATA.astonmartin);
+['haas','haasf1team'].forEach(k => TEAM_DATA[k] = TEAM_DATA.haasf1team);
+['rb','racing_bulls','racingbulls','alphatauri'].forEach(k => TEAM_DATA[k] = TEAM_DATA.racingbulls);
+['sauber','audi'].forEach(k => TEAM_DATA[k] = TEAM_DATA.audi);
+
+const teamStatsCache = {};
+
+async function fetchTeamStats(jolpicaId) {
+  if (teamStatsCache[jolpicaId]) return teamStatsCache[jolpicaId];
+  try {
+    const [winsRes, p2Res, p3Res, polesRes] = await Promise.all([
+      fetch(`${API}/constructors/${jolpicaId}/results/1/?limit=1`),
+      fetch(`${API}/constructors/${jolpicaId}/results/2/?limit=1`),
+      fetch(`${API}/constructors/${jolpicaId}/results/3/?limit=1`),
+      fetch(`${API}/constructors/${jolpicaId}/qualifying/1/?limit=1`),
+    ]);
+    const [wD, p2D, p3D, poD] = await Promise.all([winsRes.json(), p2Res.json(), p3Res.json(), polesRes.json()]);
+    const wins    = parseInt(wD.MRData?.total  || 0);
+    const podiums = wins + parseInt(p2D.MRData?.total || 0) + parseInt(p3D.MRData?.total || 0);
+    const poles   = parseInt(poD.MRData?.total || 0);
+    const result  = { wins, podiums, poles };
+    teamStatsCache[jolpicaId] = result;
+    return result;
+  } catch(e) { return null; }
+}
+
+async function fetchTeamChampionships(jolpicaId) {
+  const key = jolpicaId + '_champs';
+  if (teamStatsCache[key]) return teamStatsCache[key];
+  try {
+    const res  = await fetch(`${API}/constructors/${jolpicaId}/constructorStandings/?limit=100`);
+    const data = await res.json();
+    const seasons = data.MRData?.StandingsTable?.StandingsLists || [];
+    const years = seasons
+      .filter(s => s.ConstructorStandings?.[0]?.position === '1')
+      .map(s => parseInt(s.season)).sort();
+    teamStatsCache[key] = years;
+    return years;
+  } catch(e) { return []; }
+}
+
+async function openTeamSidebar(teamId, seasonData) {
+  const t = TEAM_DATA[teamId];
+  if (!t) return;
+
+  /* color bar */
+  document.getElementById('tsb-color-bar').style.background = t.color;
+
+  /* hero car */
+  document.getElementById('tsb-hero-car').style.backgroundImage = `url("${t.car}")`;
+  document.getElementById('tsb-hero').style.background = `linear-gradient(160deg,#0a0a18,#12121e)`;
+
+  /* logo */
+  document.getElementById('tsb-hero-logo').src = t.logo;
+
+  /* name + meta */
+  document.getElementById('tsb-name').textContent = t.name;
+  document.getElementById('tsb-meta').innerHTML =
+    `<span>${t.base}</span><span>${t.principal}</span><span>${t.founded}</span>`;
+
+  /* season stats */
+  document.getElementById('tsb-season').innerHTML = `
+    <div class="tsb-season-cell"><span class="tsb-season-val" style="color:${t.color}">P${seasonData.pos}</span><span class="tsb-season-lbl">Position</span></div>
+    <div class="tsb-season-cell"><span class="tsb-season-val">${seasonData.pts}</span><span class="tsb-season-lbl">Points</span></div>
+    <div class="tsb-season-cell"><span class="tsb-season-val">${seasonData.wins}</span><span class="tsb-season-lbl">Wins</span></div>`;
+
+  /* career stats — skeleton while loading */
+  document.getElementById('tsb-stats-loading').textContent = 'loading…';
+  document.getElementById('tsb-stats-grid').innerHTML = [1,2,3].map(()=>
+    `<div class="sb-stat"><div class="sk" style="width:48px;height:28px;border-radius:4px;margin-bottom:4px"></div><div class="sk" style="width:56px;height:10px;border-radius:3px"></div></div>`
+  ).join('');
+
+  /* championships — skeleton */
+  const champsWrap = document.getElementById('tsb-champs-wrap');
+  champsWrap.style.display = '';
+  document.getElementById('tsb-champs').innerHTML = `<span class="tsb-loading">loading…</span>`;
+
+  /* driver champions — static data */
+  const dcWrap = document.getElementById('tsb-dchamps-wrap');
+  if (t.driverChamps && t.driverChamps.length > 0) {
+    dcWrap.style.display = '';
+    document.getElementById('tsb-dchamps-count').textContent = `👑 ×${t.driverChamps.length}`;
+    document.getElementById('tsb-dchamps').innerHTML = t.driverChamps.map(c =>
+      `<div class="tsb-dchamp-row"><span class="tsb-dchamp-year">${c.year}</span><span class="tsb-dchamp-name">${c.driver}</span></div>`
+    ).join('');
+  } else {
+    dcWrap.style.display = 'none';
+  }
+
+  /* current drivers */
+  document.getElementById('tsb-drivers').innerHTML = t.driverIds.map(dId => {
+    const drv = DRV[dId];
+    const num = drv?.n || '';
+    const dData = DRIVER_DATA[dId];
+    const firstName = dData?.name?.split(' ')[0] || '';
+    const lastName  = dData?.name?.split(' ').slice(1).join(' ') || '';
+    const photoSrc  = drv ? `photos/drivers/${drv.f}.webp` : '';
+    return `<div class="tsb-driver-chip" onclick="closeTsb();setTimeout(()=>document.querySelector('[data-driver=${dId}]')?.click(),350)">
+      <div class="tsb-driver-avatar"><img src="${photoSrc}" alt="" onerror="this.style.display='none'"></div>
+      <div><div class="tsb-driver-name">${firstName}<br>${lastName}</div><div class="tsb-driver-num">#${num}</div></div>
+    </div>`;
+  }).join('');
+
+  /* open */
+  document.getElementById('team-sb').classList.add('open');
+  document.getElementById('tsb-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  /* async: fetch career stats & championships in parallel */
+  const [stats, champYears] = await Promise.all([
+    fetchTeamStats(t.jolpicaId),
+    fetchTeamChampionships(t.jolpicaId),
+  ]);
+
+  /* championships */
+  if (champYears && champYears.length > 0) {
+    champsWrap.style.display = '';
+    document.getElementById('tsb-champs-count').textContent = `🏆 ×${champYears.length}`;
+    document.getElementById('tsb-champs').innerHTML = champYears.map((y,i)=>
+      `<span class="sb-champ">${y}</span>${i < champYears.length-1 ? '<span style="color:var(--border2);font-size:14px">·</span>' : ''}`
+    ).join('');
+  } else {
+    champsWrap.style.display = 'none';
+  }
+
+  /* career stats */
+  document.getElementById('tsb-stats-loading').textContent = '';
+  if (stats) {
+    document.getElementById('tsb-stats-grid').innerHTML = [
+      {val: stats.wins,    lbl: 'Race Wins'},
+      {val: stats.poles,   lbl: 'Pole Positions'},
+      {val: stats.podiums, lbl: 'Podiums'},
+    ].map(s => `<div class="sb-stat"><span class="sb-stat-val">${s.val}</span><span class="sb-stat-lbl">${s.lbl}</span></div>`).join('');
+  } else {
+    document.getElementById('tsb-stats-grid').innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px">Failed to load stats</div>`;
+  }
+}
+
+function closeTsb() {
+  document.getElementById('team-sb').classList.remove('open');
+  document.getElementById('tsb-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('tsb-close2').addEventListener('click', closeTsb);
+document.getElementById('tsb-overlay').addEventListener('click', closeTsb);
+
+/* ── DRIVER CAREER STATS (Jolpica) ── */
+const driverStatsCache = {};
+
+async function fetchDriverCareerStats(driverId) {
+  if (driverStatsCache[driverId]) return driverStatsCache[driverId];
+  try {
+    const [wR,p2R,p3R,poR] = await Promise.all([
+      fetch(`${API}/drivers/${driverId}/results/1/?limit=1`),
+      fetch(`${API}/drivers/${driverId}/results/2/?limit=1`),
+      fetch(`${API}/drivers/${driverId}/results/3/?limit=1`),
+      fetch(`${API}/drivers/${driverId}/grid/1/results/?limit=1`),
+    ]);
+    const [wD,p2D,p3D,poD] = await Promise.all([wR.json(),p2R.json(),p3R.json(),poR.json()]);
+    const wins    = parseInt(wD.MRData?.total  || 0);
+    const podiums = wins + parseInt(p2D.MRData?.total || 0) + parseInt(p3D.MRData?.total || 0);
+    const poles   = parseInt(poD.MRData?.total || 0);
+    const result  = { wins, podiums, poles };
+    driverStatsCache[driverId] = result;
+    return result;
+  } catch(e) { return null; }
+}
+
+async function fetchDriverChampionships(driverId) {
+  const key = driverId + '_champs';
+  if (driverStatsCache[key]) return driverStatsCache[key];
+  try {
+    const res  = await fetch(`${API}/drivers/${driverId}/driverStandings/?limit=100`);
+    const data = await res.json();
+    const seasons = data.MRData?.StandingsTable?.StandingsLists || [];
+    const years = seasons
+      .filter(s => s.DriverStandings?.[0]?.position === '1')
+      .map(s => parseInt(s.season)).sort();
+    driverStatsCache[key] = years;
+    return years;
+  } catch(e) { return null; }
+}
+
+/* ── DRIVER SIDEBAR ── */
+const DRIVER_DATA = {
+  hamilton: {
+    name: 'Lewis Hamilton', number: 44,
+    nationality: '🇬🇧 British · Stevenage, England',
+    teamLogo: 'photos/logos/Ferrari.webp',
+    championships: [2008,2014,2015,2016,2017,2018,2019],
+    careerPoints: '5019',
+    stats: [{val:'105',lbl:'Race Wins'},{val:'104',lbl:'Pole Positions'},{val:'197',lbl:'Podiums'}],
+    career: [
+      {years:'2007–2012', team:'McLaren',  detail:'1× Champion (2008) · 21 wins · 6 seasons', color:'#FF8000', active:false},
+      {years:'2013–2024', team:'Mercedes', detail:'6× Champion (2014–15, 2017–20) · 84 wins · 12 seasons', color:'#00D2BE', active:false},
+      {years:'2025–',     team:'Ferrari',  detail:'Current season', color:'#E8000F', active:true},
+    ]
+  },
+  max_verstappen: {
+    name: 'Max Verstappen', number: 33,
+    nationality: '🇳🇱 Dutch · Hasselt, Belgium',
+    teamLogo: 'photos/logos/Red_Bull.webp',
+    championships: [2021,2022,2023,2024],
+    careerPoints: '3445',
+    stats: [{val:'63',lbl:'Race Wins'},{val:'48',lbl:'Pole Positions'},{val:'113',lbl:'Podiums'}],
+    career: [
+      {years:'2015',     team:'Toro Rosso',     detail:'F1 debut aged 17 · 1 season', color:'#469BFF', active:false},
+      {years:'2016–',    team:'Red Bull Racing', detail:'4× Champion (2021–24) · 63 wins', color:'#3671C6', active:true},
+    ]
+  },
+  leclerc: {
+    name: 'Charles Leclerc', number: 16,
+    nationality: '🇲🇨 Monégasque · Monte Carlo, Monaco',
+    teamLogo: 'photos/logos/Ferrari.webp',
+    championships: [],
+    careerPoints: '1672',
+    stats: [{val:'8',lbl:'Race Wins'},{val:'27',lbl:'Pole Positions'},{val:'45',lbl:'Podiums'}],
+    career: [
+      {years:'2018',  team:'Sauber',  detail:'Debut season · rookie of the year', color:'#C92D4B', active:false},
+      {years:'2019–', team:'Ferrari', detail:'Current team', color:'#E8000F', active:true},
+    ]
+  },
+  sainz: {
+    name: 'Carlos Sainz', number: 55,
+    nationality: '🇪🇸 Spanish · Madrid, Spain',
+    teamLogo: 'photos/logos/Williams.webp',
+    championships: [],
+    careerPoints: '1337',
+    stats: [{val:'3',lbl:'Race Wins'},{val:'6',lbl:'Pole Positions'},{val:'30',lbl:'Podiums'}],
+    career: [
+      {years:'2015–2017', team:'Toro Rosso',  detail:'3 seasons', color:'#469BFF', active:false},
+      {years:'2018',      team:'Renault',      detail:'1 season (loan)', color:'#FFF500', active:false},
+      {years:'2019–2020', team:'McLaren',      detail:'2 seasons', color:'#FF8000', active:false},
+      {years:'2021–2024', team:'Ferrari',      detail:'3 wins · 4 seasons', color:'#E8000F', active:false},
+      {years:'2025–',     team:'Williams',     detail:'Current season', color:'#64C4FF', active:true},
+    ]
+  },
+  norris: {
+    name: 'Lando Norris', number: 1,
+    nationality: '🇬🇧 British · Bristol, England',
+    teamLogo: 'photos/logos/McLaren.webp',
+    championships: [2025],
+    careerPoints: '1430',
+    stats: [{val:'11',lbl:'Race Wins'},{val:'16',lbl:'Pole Positions'},{val:'44',lbl:'Podiums'}],
+    career: [
+      {years:'2019–', team:'McLaren', detail:'1× Champion (2025) · current team', color:'#FF8000', active:true},
+    ]
+  },
+  piastri: {
+    name: 'Oscar Piastri', number: 81,
+    nationality: '🇦🇺 Australian · Melbourne, Australia',
+    teamLogo: 'photos/logos/McLaren.webp',
+    championships: [],
+    careerPoints: '799',
+    stats: [{val:'9',lbl:'Race Wins'},{val:'6',lbl:'Pole Positions'},{val:'26',lbl:'Podiums'}],
+    career: [
+      {years:'2023–', team:'McLaren', detail:'9 wins · 6 poles · 2025 runner-up', color:'#FF8000', active:true},
+    ]
+  },
+  russell: {
+    name: 'George Russell', number: 63,
+    nationality: '🇬🇧 British · King\'s Lynn, England',
+    teamLogo: 'photos/logos/Mercedes.webp',
+    championships: [],
+    careerPoints: '1033',
+    stats: [{val:'3',lbl:'Race Wins'},{val:'9',lbl:'Pole Positions'},{val:'20',lbl:'Podiums'}],
+    career: [
+      {years:'2019–2021', team:'Williams',  detail:'3 seasons', color:'#64C4FF', active:false},
+      {years:'2022–',     team:'Mercedes', detail:'3 wins · 8 poles', color:'#00D2BE', active:true},
+    ]
+  },
+  antonelli: {
+    name: 'Kimi Antonelli', number: 12,
+    nationality: '🇮🇹 Italian · Bologna, Italy',
+    teamLogo: 'photos/logos/Mercedes.webp',
+    championships: [],
+    careerPoints: '150',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
+    career: [
+      {years:'2025–', team:'Mercedes', detail:'Current season · F1 debut at 18', color:'#00D2BE', active:true},
+    ]
+  },
+  alonso: {
+    name: 'Fernando Alonso', number: 14,
+    nationality: '🇪🇸 Spanish · Oviedo, Spain',
+    teamLogo: 'photos/logos/Aston_Martin.webp',
+    championships: [2005,2006],
+    careerPoints: '2393',
+    stats: [{val:'32',lbl:'Race Wins'},{val:'22',lbl:'Pole Positions'},{val:'98',lbl:'Podiums'}],
+    career: [
+      {years:'2001–2009', team:'Renault / McLaren', detail:'2× Champion (2005–06) · 28 wins', color:'#FFF500', active:false},
+      {years:'2010–2014', team:'Ferrari',            detail:'11 wins · 5 seasons', color:'#E8000F', active:false},
+      {years:'2015–2018', team:'McLaren',            detail:'4 seasons', color:'#FF8000', active:false},
+      {years:'2021–',     team:'Aston Martin',       detail:'Current team', color:'#358C75', active:true},
+    ]
+  },
+  stroll: {
+    name: 'Lance Stroll', number: 18,
+    nationality: '🇨🇦 Canadian · Montreal, Canada',
+    teamLogo: 'photos/logos/Aston_Martin.webp',
+    championships: [],
+    careerPoints: '325',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'1',lbl:'Pole Positions'},{val:'3',lbl:'Podiums'}],
+    career: [
+      {years:'2017',  team:'Williams',     detail:'Rookie season', color:'#64C4FF', active:false},
+      {years:'2018–', team:'Racing Point → Aston Martin', detail:'3 podiums', color:'#358C75', active:true},
+    ]
+  },
+  hulkenberg: {
+    name: 'Nico Hülkenberg', number: 27,
+    nationality: '🇩🇪 German · Emmerich, Germany',
+    teamLogo: 'photos/logos/Audi.webp',
+    championships: [],
+    careerPoints: '622',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'1',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
+    career: [
+      {years:'2010–2022', team:'Williams / Force India / Renault / Haas', detail:'13 seasons · 1 pole', color:'#00E0FF', active:false},
+      {years:'2023–',     team:'Audi',       detail:'Current team', color:'#E8002D', active:true},
+    ]
+  },
+  bortoleto: {
+    name: 'Gabriel Bortoleto', number: 5,
+    nationality: '🇧🇷 Brazilian · São Paulo, Brazil',
+    teamLogo: 'photos/logos/Audi.webp',
+    championships: [],
+    careerPoints: '19',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
+    career: [
+      {years:'2025–', team:'Audi', detail:'F2 Champion 2024 · F1 debut', color:'#E8002D', active:true},
+    ]
+  },
+  bearman: {
+    name: 'Oliver Bearman', number: 87,
+    nationality: '🇬🇧 British · Chelmsford, England',
+    teamLogo: 'photos/logos/Haas.webp',
+    championships: [],
+    careerPoints: '48',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'1',lbl:'Podiums'}],
+    career: [
+      {years:'2024',  team:'Ferrari',    detail:'F1 debut (sub for Sainz, Saudi Arabia)', color:'#E8000F', active:false},
+      {years:'2025–', team:'Haas',       detail:'Current season', color:'#B6BABD', active:true},
+    ]
+  },
+  ocon: {
+    name: 'Esteban Ocon', number: 31,
+    nationality: '🇫🇷 French · Évreux, France',
+    teamLogo: 'photos/logos/Haas.webp',
+    championships: [],
+    careerPoints: '483',
+    stats: [{val:'1',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'3',lbl:'Podiums'}],
+    career: [
+      {years:'2016–2019', team:'Manor / Force India', detail:'4 seasons', color:'#FF87BC', active:false},
+      {years:'2020–2024', team:'Renault / Alpine',    detail:'1 win (2021 Hungary) · 5 seasons', color:'#0090FF', active:false},
+      {years:'2025–',     team:'Haas',                detail:'Current season', color:'#B6BABD', active:true},
+    ]
+  },
+  gasly: {
+    name: 'Pierre Gasly', number: 10,
+    nationality: '🇫🇷 French · Rouen, France',
+    teamLogo: 'photos/logos/Alpine.webp',
+    championships: [],
+    careerPoints: '458',
+    stats: [{val:'1',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'4',lbl:'Podiums'}],
+    career: [
+      {years:'2017–2022', team:'Toro Rosso / AlphaTauri', detail:'1 win (2020 Monza) · 6 seasons', color:'#469BFF', active:false},
+      {years:'2023–',     team:'Alpine',                  detail:'Current team', color:'#0090FF', active:true},
+    ]
+  },
+  colapinto: {
+    name: 'Franco Colapinto', number: 43,
+    nationality: '🇦🇷 Argentine · Buenos Aires, Argentina',
+    teamLogo: 'photos/logos/Alpine.webp',
+    championships: [],
+    careerPoints: '5',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
+    career: [
+      {years:'2024',  team:'Williams', detail:'9 races (sub for Sargeant)', color:'#64C4FF', active:false},
+      {years:'2025–', team:'Alpine',   detail:'Current season', color:'#0090FF', active:true},
+    ]
+  },
+  albon: {
+    name: 'Alexander Albon', number: 23,
+    nationality: '🇹🇭 Thai · London, England',
+    teamLogo: 'photos/logos/Williams.webp',
+    championships: [],
+    careerPoints: '313',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'2',lbl:'Podiums'}],
+    career: [
+      {years:'2019–2020', team:'Toro Rosso / Red Bull', detail:'2 seasons · 2 podiums', color:'#3671C6', active:false},
+      {years:'2022–',     team:'Williams',              detail:'Current team', color:'#64C4FF', active:true},
+    ]
+  },
+  lawson: {
+    name: 'Liam Lawson', number: 30,
+    nationality: '🇳🇿 New Zealander · Hastings, NZ',
+    teamLogo: 'photos/logos/Racing_Bulls.webp',
+    championships: [],
+    careerPoints: '44',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
+    career: [
+      {years:'2023',  team:'AlphaTauri',  detail:'5 races (sub for Ricciardo)', color:'#469BFF', active:false},
+      {years:'2024–', team:'Racing Bulls', detail:'Current team', color:'#6692FF', active:true},
+    ]
+  },
+  arvid_lindblad: {
+    name: 'Arvid Lindblad', number: 6,
+    nationality: '🇬🇧 British · Sheffield, England',
+    teamLogo: 'photos/logos/Racing_Bulls.webp',
+    championships: [],
+    careerPoints: null,
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
+    career: [
+      {years:'2026–', team:'Racing Bulls', detail:'F1 debut · youngest Red Bull junior', color:'#6692FF', active:true},
+    ]
+  },
+  bottas: {
+    name: 'Valtteri Bottas', number: 77,
+    nationality: '🇫🇮 Finnish · Nastola, Finland',
+    teamLogo: 'photos/logos/Cadillac.webp',
+    championships: [],
+    careerPoints: '1797',
+    stats: [{val:'10',lbl:'Race Wins'},{val:'20',lbl:'Pole Positions'},{val:'67',lbl:'Podiums'}],
+    career: [
+      {years:'2013–2016', team:'Williams',    detail:'4 seasons', color:'#64C4FF', active:false},
+      {years:'2017–2021', team:'Mercedes',   detail:'10 wins · 20 poles · 5 seasons', color:'#00D2BE', active:false},
+      {years:'2022–2024', team:'Alfa Romeo / Sauber', detail:'3 seasons', color:'#C92D4B', active:false},
+      {years:'2025–',     team:'Cadillac',   detail:'Current team', color:'#3E48FF', active:true},
+    ]
+  },
+  perez: {
+    name: 'Sergio Pérez', number: 11,
+    nationality: '🇲🇽 Mexican · Guadalajara, Mexico',
+    teamLogo: 'photos/logos/Cadillac.webp',
+    championships: [],
+    careerPoints: '1638',
+    stats: [{val:'6',lbl:'Race Wins'},{val:'3',lbl:'Pole Positions'},{val:'39',lbl:'Podiums'}],
+    career: [
+      {years:'2011–2013', team:'Sauber / McLaren',       detail:'3 seasons · 1 win', color:'#C92D4B', active:false},
+      {years:'2014–2020', team:'Force India / Racing Point', detail:'5 wins · 7 seasons', color:'#FF87BC', active:false},
+      {years:'2021–2024', team:'Red Bull Racing',         detail:'3 wins · 4 seasons', color:'#3671C6', active:false},
+      {years:'2025–',     team:'Cadillac',                detail:'Current team', color:'#3E48FF', active:true},
+    ]
+  },
+  hadjar: {
+    name: 'Isack Hadjar', number: 22,
+    nationality: '🇫🇷 French · Paris, France',
+    teamLogo: 'photos/logos/Racing_Bulls.webp',
+    championships: [],
+    careerPoints: '51',
+    stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
+    career: [
+      {years:'2025–', team:'Racing Bulls', detail:'F1 debut · F2 runner-up 2024', color:'#6692FF', active:true},
+    ]
+  },
+};
+
+async function openSidebar(driverId, col, seasonData = {}) {
+  const d = DRIVER_DATA[driverId];
+  if (!d) return;
+
+  /* color bar */
+  document.getElementById('sb-color-bar').style.background = col;
+
+  /* hero number — prefer live number from standings, fallback to DRIVER_DATA */
+  const displayNum = seasonData.number || d.number;
+  document.getElementById('sb-hero-num').textContent = displayNum;
+
+  /* name / team / nationality */
+  document.getElementById('sb-name').textContent = d.name;
+  document.getElementById('sb-team').textContent = document.querySelector(`[data-driver="${driverId}"] .drv-team`)?.textContent || '';
+  document.getElementById('sb-nat').textContent = d.nationality;
+
+  /* hero photo */
+  const img = document.getElementById('sb-hero-img');
+  const src = document.querySelector(`[data-driver="${driverId}"] .drv-img`)?.src || '';
+  img.src = src; img.style.display = src ? 'block' : 'none';
+
+  /* team logo */
+  const logo = document.getElementById('sb-hero-logo');
+  if (d.teamLogo) { logo.src = d.teamLogo; logo.style.display = 'block'; }
+  else { logo.style.display = 'none'; }
+
+  /* career points (static, stays as-is) */
+  document.getElementById('sb-hero-pts').innerHTML = d.careerPoints
+    ? `<div class="sb-hero-pts-val">${d.careerPoints}</div><div class="sb-hero-pts-lbl">Career Points</div>`
+    : '';
+
+  /* season 2026 stats from live data */
+  const sPts   = seasonData.pts   != null ? seasonData.pts   : '—';
+  const sWins  = seasonData.wins  != null ? seasonData.wins  : '—';
+  const sPod   = seasonData.podiums != null ? seasonData.podiums : '—';
+  const sPos   = seasonData.pos   != null ? `P${seasonData.pos}` : '—';
+  document.getElementById('sb-season').innerHTML = `
+    <div class="tsb-season-cell"><span class="tsb-season-val" style="color:${col}">${sPos}</span><span class="tsb-season-lbl">Position</span></div>
+    <div class="tsb-season-cell"><span class="tsb-season-val">${sPts}</span><span class="tsb-season-lbl">Points</span></div>
+    <div class="tsb-season-cell"><span class="tsb-season-val">${sWins}</span><span class="tsb-season-lbl">Wins</span></div>`;
+
+  /* career stats — skeleton while loading */
+  document.getElementById('sb-stats-loading').textContent = 'loading…';
+  document.getElementById('sb-stats-grid').innerHTML = [1,2,3].map(()=>
+    `<div class="sb-stat"><div class="sk" style="width:48px;height:28px;border-radius:4px;margin-bottom:4px"></div><div class="sk" style="width:56px;height:10px;border-radius:3px"></div></div>`
+  ).join('');
+
+  /* championships — skeleton while loading */
+  const champsWrap = document.getElementById('sb-champs-wrap');
+  champsWrap.style.display = '';
+  document.getElementById('sb-champs').innerHTML = `<span class="tsb-loading">loading…</span>`;
+
+  /* career timeline (static) */
+  document.getElementById('sb-timeline').innerHTML = d.career.map(c=>`
+    <div class="sb-tl-item">
+      <div class="sb-tl-dot ${c.active?'active':''}" style="color:${c.color}"></div>
+      <div>
+        <div class="sb-tl-years">${c.years}</div>
+        <div class="sb-tl-team" style="color:${c.color}">${c.team}</div>
+        <div class="sb-tl-detail">${c.detail}</div>
+      </div>
+    </div>`
+  ).join('');
+
+  /* open sidebar */
+  document.getElementById('driver-sb').classList.add('open');
+  document.getElementById('sb-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  /* async: fetch career stats + championships in parallel */
+  const [stats, champYears] = await Promise.all([
+    fetchDriverCareerStats(driverId),
+    fetchDriverChampionships(driverId),
+  ]);
+
+  /* championships — use API result if non-empty, else fallback to static data */
+  const champs = (champYears && champYears.length > 0) ? champYears : (d.championships || []);
+  if (champs.length > 0) {
+    champsWrap.style.display = '';
+    document.getElementById('sb-champs-count').textContent = `🏆 ×${champs.length}`;
+    document.getElementById('sb-champs').innerHTML = champs.map((y,i)=>
+      `<span class="sb-champ">${y}</span>${i < champs.length-1 ? '<span style="color:var(--border2);font-size:14px">·</span>' : ''}`
+    ).join('');
+  } else {
+    champsWrap.style.display = 'none';
+  }
+
+  /* career stats */
+  document.getElementById('sb-stats-loading').textContent = '';
+  if (stats) {
+    /* wins + podiums + poles from API; poles fallback to static */
+    const staticPoles = d.stats.find(s => s.lbl.toLowerCase().includes('pole'))?.val ?? d.stats[1]?.val ?? '0';
+    const polesVal = (stats.poles != null && stats.poles > 0) ? stats.poles : staticPoles;
+    document.getElementById('sb-stats-grid').innerHTML = [
+      {val: stats.wins,  lbl: 'Race Wins'},
+      {val: polesVal,    lbl: 'Pole Positions'},
+      {val: stats.podiums, lbl: 'Podiums'},
+    ].map(s => `<div class="sb-stat"><span class="sb-stat-val">${s.val}</span><span class="sb-stat-lbl">${s.lbl}</span></div>`).join('');
+  } else {
+    /* fallback to static data */
+    document.getElementById('sb-stats-grid').innerHTML = d.stats.map(s=>
+      `<div class="sb-stat"><span class="sb-stat-val">${s.val}</span><span class="sb-stat-lbl">${s.lbl}</span></div>`
+    ).join('');
+  }
+}
+
+function closeSidebar() {
+  document.getElementById('driver-sb').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('sb-close').addEventListener('click', closeSidebar);
+document.getElementById('sb-overlay').addEventListener('click', closeSidebar);
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeSidebar(); });
+</script>
+</body>
+</html>

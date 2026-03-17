@@ -1,0 +1,10 @@
+.DS_Store
+screenshots/
+*.py
+start.sh
+serve.py
+.claude/
+f1_2025_season_tracker.html
+f1_2026.html
+f1_2026_v2.html
+f1_2026_v3.html
