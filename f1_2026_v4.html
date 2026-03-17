@@ -183,7 +183,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 .team-stat-sep{width:1px;height:20px;background:var(--border)}
 
 /* ── CALENDAR ── */
-.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:10px}
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 .race-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 15px;transition:border-color .2s,transform .2s;cursor:default}
 .race-card:hover{border-color:var(--border2);transform:translateY(-2px)}
 .race-card.done{opacity:.85;border-top-width:2px}
@@ -202,6 +202,16 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 .pod-row{display:flex;align-items:center;gap:5px;font-family:var(--fm);font-size:12px;margin-top:3px;color:var(--muted2)}
 .pod-m{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .m1{background:var(--gold);color:#000}.m2{background:var(--silver);color:#000}.m3{background:var(--bronze);color:#fff}
+/* track stats */
+.rc-track{margin:8px 0 4px;padding:8px 0 6px;border-top:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.rc-track-stats{display:flex;gap:16px}
+.rc-stat{display:flex;flex-direction:column;gap:1px}
+.rc-stat-val{font-family:var(--ff);font-size:16px;font-weight:700}
+.rc-stat-lbl{font-family:var(--fm);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.rc-rec{text-align:right;flex-shrink:0}
+.rc-rec-time{font-family:var(--fm);font-size:12px;font-weight:700;color:var(--muted2)}
+.rc-rec-drv{font-family:var(--ff);font-size:11px;color:var(--muted2)}
+.rc-rec-lbl{font-family:var(--fm);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-top:1px}
 
 /* ── STANDINGS ── */
 .std-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
@@ -976,6 +986,32 @@ function renderTeams(constrs,drivers,teamPodiums={},teamWinsMap={}){
   document.getElementById('teams-meta').textContent=`${constrs.length} teams`;
 }
 
+/* ── Circuit data (length, laps, lap record) ── */
+const CIRCUIT_DATA = {
+  albert_park:   { km:'5.278', laps:58, rec:'1:20.235', drv:'Bottas',        yr:2023 },
+  shanghai:      { km:'5.451', laps:56, rec:'1:32.238', drv:'M.Schumacher',  yr:2004 },
+  suzuka:        { km:'5.807', laps:53, rec:'1:30.983', drv:'Hamilton',      yr:2019 },
+  miami:         { km:'5.412', laps:57, rec:'1:29.708', drv:'Verstappen',    yr:2023 },
+  villeneuve:    { km:'4.361', laps:70, rec:'1:13.078', drv:'Bottas',        yr:2019 },
+  monaco:        { km:'3.337', laps:78, rec:'1:12.909', drv:'Leclerc',       yr:2021 },
+  catalunya:     { km:'4.657', laps:66, rec:'1:16.330', drv:'Sainz',         yr:2023 },
+  red_bull_ring: { km:'4.318', laps:71, rec:'1:05.619', drv:'Verstappen',    yr:2021 },
+  silverstone:   { km:'5.891', laps:52, rec:'1:27.097', drv:'Hamilton',      yr:2020 },
+  spa:           { km:'7.004', laps:44, rec:'1:46.286', drv:'Bottas',        yr:2018 },
+  hungaroring:   { km:'4.381', laps:70, rec:'1:16.627', drv:'Hamilton',      yr:2020 },
+  zandvoort:     { km:'4.259', laps:72, rec:'1:11.097', drv:'Hamilton',      yr:2021 },
+  monza:         { km:'5.793', laps:53, rec:'1:21.046', drv:'Barrichello',   yr:2004 },
+  madring:       { km:'5.474', laps:55, rec:null,       drv:null,            yr:null },
+  baku:          { km:'6.003', laps:51, rec:'1:43.009', drv:'Verstappen',    yr:2023 },
+  marina_bay:    { km:'4.940', laps:62, rec:'1:35.867', drv:'Pérez',         yr:2023 },
+  americas:      { km:'5.513', laps:56, rec:'1:36.169', drv:'Verstappen',    yr:2023 },
+  rodriguez:     { km:'4.304', laps:71, rec:'1:17.774', drv:'Bottas',        yr:2021 },
+  interlagos:    { km:'4.309', laps:71, rec:'1:10.540', drv:'Barrichello',   yr:2004 },
+  vegas:         { km:'6.201', laps:50, rec:'1:35.490', drv:'Leclerc',       yr:2023 },
+  losail:        { km:'5.380', laps:57, rec:'1:24.319', drv:'Russell',       yr:2023 },
+  yas_marina:    { km:'5.281', laps:58, rec:'1:26.103', drv:'Verstappen',    yr:2021 },
+};
+
 /* ── Calendar ── */
 function renderCalendar(races,pm,winTeam){
   const now=Date.now();
@@ -1005,11 +1041,24 @@ function renderCalendar(races,pm,winTeam){
       }
     }
 
+    const cd = CIRCUIT_DATA[r.Circuit.circuitId];
+    const trackBlock = cd ? `
+      <div class="rc-track">
+        <div class="rc-track-stats">
+          <div class="rc-stat"><span class="rc-stat-val">${cd.km}</span><span class="rc-stat-lbl">КМ</span></div>
+          <div class="rc-stat"><span class="rc-stat-val">${cd.laps}</span><span class="rc-stat-lbl">КІЛ</span></div>
+        </div>
+        ${cd.rec
+          ? `<div class="rc-rec"><div class="rc-rec-time">${cd.rec}</div><div class="rc-rec-drv">${cd.drv} (${cd.yr})</div><div class="rc-rec-lbl">РЕКОРД</div></div>`
+          : `<div class="rc-rec"><div class="rc-rec-drv" style="font-size:10px;color:var(--muted)">Новий рекорд</div></div>`}
+      </div>` : '';
+
     el.innerHTML=`
       <div class="race-rnd">Round ${r.round.padStart(2,'0')}</div>
       <div class="race-flag">${fl}</div>
       <div class="race-name">${r.raceName.replace(' Grand Prix','').replace('Grand Prix of ','')}</div>
       <div class="race-cir">${r.Circuit.circuitName}</div>
+      ${trackBlock}
       <div class="race-dt">${dt}</div>
       <span class="race-tag ${tc}">${tt}</span>
       ${pod.length?`<div class="podium-wrap">${pod.map((p,i)=>`<div class="pod-row"><div class="pod-m m${i+1}">${i+1}</div>${p.given.charAt(0)}. ${p.name}</div>`).join('')}</div>`:''}`;
