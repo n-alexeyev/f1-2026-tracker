@@ -303,6 +303,11 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--b
 .sb-champs-count{font-family:var(--ff);font-size:15px;font-weight:900;color:var(--gold);opacity:.7}
 .sb-champs{display:flex;flex-wrap:nowrap;gap:10px;align-items:center}
 .sb-champ{font-family:var(--ff);font-size:17px;font-weight:900;color:var(--gold);white-space:nowrap}
+.tsb-cchamps{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tsb-cchamp-row{display:flex;align-items:center;gap:5px;padding:5px 8px;background:rgba(245,197,24,.05);border-radius:6px}
+.tsb-cchamp-year{font-family:var(--fm);font-size:12px;color:var(--muted2);min-width:34px;flex-shrink:0}
+.tsb-cchamp-drv{font-family:var(--ff);font-size:13px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tsb-cchamp-pts{font-family:var(--fm);font-size:11px;color:var(--gold);opacity:.8;flex-shrink:0;white-space:nowrap}
 .sb-timeline{display:flex;flex-direction:column;gap:0}
 .sb-tl-item{display:flex;gap:12px;position:relative;padding-bottom:10px}
 .sb-tl-item:last-child{padding-bottom:0}
@@ -557,7 +562,7 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--b
         <div class="sb-section-title" style="margin-bottom:0">Constructor Championships</div>
         <div class="sb-champs-count" id="tsb-champs-count"></div>
       </div>
-      <div class="sb-champs" id="tsb-champs"></div>
+      <div class="tsb-cchamps" id="tsb-champs"></div>
     </div>
     <div class="tsb-dchamps-wrap" id="tsb-dchamps-wrap">
       <div class="tsb-dchamps-hd">
@@ -1113,7 +1118,12 @@ const TEAM_DATA = {
     car: 'photos/cars/Mercedes.webp',
     color: '#00D2BE',
     driverIds: ['russell', 'antonelli'],
-    constructorChamps: [2014,2015,2016,2017,2018,2019,2020,2021],
+    constructorChamps: [
+      {year:2014,driver:'Hamilton',pts:384},{year:2015,driver:'Hamilton',pts:381},
+      {year:2016,driver:'Rosberg',pts:385},{year:2017,driver:'Hamilton',pts:363},
+      {year:2018,driver:'Hamilton',pts:408},{year:2019,driver:'Hamilton',pts:413},
+      {year:2020,driver:'Hamilton',pts:347},{year:2021,driver:'Hamilton',pts:387},
+    ],
     driverChamps: [
       {year:2014,driver:'Hamilton'},{year:2015,driver:'Hamilton'},
       {year:2016,driver:'Rosberg'},{year:2017,driver:'Hamilton'},
@@ -1131,7 +1141,16 @@ const TEAM_DATA = {
     car: 'photos/cars/Ferrari.webp',
     color: '#E8000F',
     driverIds: ['leclerc', 'hamilton'],
-    constructorChamps: [1961,1964,1975,1976,1977,1979,1982,1983,1999,2000,2001,2002,2003,2004,2007,2008],
+    constructorChamps: [
+      {year:1961,driver:'P. Hill',pts:34},{year:1964,driver:'Surtees',pts:40},
+      {year:1975,driver:'Lauda',pts:64},{year:1976,driver:'Lauda',pts:68},
+      {year:1977,driver:'Lauda',pts:72},{year:1979,driver:'Scheckter',pts:51},
+      {year:1982,driver:'Pironi',pts:39},{year:1983,driver:'Arnoux',pts:49},
+      {year:1999,driver:'Irvine',pts:74},{year:2000,driver:'Schumacher',pts:108},
+      {year:2001,driver:'Schumacher',pts:123},{year:2002,driver:'Schumacher',pts:144},
+      {year:2003,driver:'Schumacher',pts:93},{year:2004,driver:'Schumacher',pts:148},
+      {year:2007,driver:'Räikkönen',pts:110},{year:2008,driver:'Massa',pts:97},
+    ],
     driverChamps: [
       {year:1952,driver:'Ascari'},{year:1953,driver:'Ascari'},
       {year:1956,driver:'Fangio'},{year:1958,driver:'Hawthorn'},
@@ -1153,7 +1172,13 @@ const TEAM_DATA = {
     car: 'photos/cars/McLaren.webp',
     color: '#FF8000',
     driverIds: ['norris', 'piastri'],
-    constructorChamps: [1974,1984,1985,1988,1989,1990,1991,1998,2025],
+    constructorChamps: [
+      {year:1974,driver:'Fittipaldi',pts:55},{year:1984,driver:'Lauda',pts:72},
+      {year:1985,driver:'Prost',pts:73},{year:1988,driver:'Senna',pts:94},
+      {year:1989,driver:'Prost',pts:76},{year:1990,driver:'Senna',pts:78},
+      {year:1991,driver:'Senna',pts:96},{year:1998,driver:'Häkkinen',pts:100},
+      {year:2025,driver:'Norris',pts:356},
+    ],
     driverChamps: [
       {year:1974,driver:'Fittipaldi'},{year:1976,driver:'Hunt'},
       {year:1984,driver:'Lauda'},{year:1985,driver:'Prost'},
@@ -1173,7 +1198,12 @@ const TEAM_DATA = {
     car: 'photos/cars/Red_Bull.webp',
     color: '#3671C6',
     driverIds: ['max_verstappen', 'hadjar'],
-    constructorChamps: [2010,2011,2012,2013,2022,2023,2024],
+    constructorChamps: [
+      {year:2010,driver:'Vettel',pts:256},{year:2011,driver:'Vettel',pts:392},
+      {year:2012,driver:'Vettel',pts:281},{year:2013,driver:'Vettel',pts:397},
+      {year:2022,driver:'Verstappen',pts:454},{year:2023,driver:'Verstappen',pts:575},
+      {year:2024,driver:'Verstappen',pts:437},
+    ],
     driverChamps: [
       {year:2010,driver:'Vettel'},{year:2011,driver:'Vettel'},
       {year:2012,driver:'Vettel'},{year:2013,driver:'Vettel'},
@@ -1204,7 +1234,9 @@ const TEAM_DATA = {
     car: 'photos/cars/Alpine.webp',
     color: '#0090FF',
     driverIds: ['gasly', 'colapinto'],
-    constructorChamps: [2005,2006],
+    constructorChamps: [
+      {year:2005,driver:'Alonso',pts:133},{year:2006,driver:'Alonso',pts:134},
+    ],
     driverChamps: [
       {year:2005,driver:'Alonso'},{year:2006,driver:'Alonso'},
     ],
@@ -1219,7 +1251,13 @@ const TEAM_DATA = {
     car: 'photos/cars/Williams.webp',
     color: '#64C4FF',
     driverIds: ['albon', 'sainz'],
-    constructorChamps: [1980,1981,1986,1987,1992,1993,1994,1996,1997],
+    constructorChamps: [
+      {year:1980,driver:'Jones',pts:67},{year:1981,driver:'Reutemann',pts:49},
+      {year:1986,driver:'Mansell',pts:70},{year:1987,driver:'Piquet',pts:73},
+      {year:1992,driver:'Mansell',pts:108},{year:1993,driver:'Prost',pts:99},
+      {year:1994,driver:'Hill',pts:91},{year:1996,driver:'Hill',pts:97},
+      {year:1997,driver:'Villeneuve',pts:81},
+    ],
     driverChamps: [
       {year:1980,driver:'Jones'},{year:1982,driver:'K. Rosberg'},
       {year:1987,driver:'Piquet'},{year:1992,driver:'Mansell'},
@@ -1361,8 +1399,8 @@ async function openTeamSidebar(teamId, seasonData) {
   if (cc.length > 0) {
     champsWrap.style.display = '';
     document.getElementById('tsb-champs-count').textContent = `🏆 ×${cc.length}`;
-    document.getElementById('tsb-champs').innerHTML = cc.map((y,i)=>
-      `<span class="sb-champ">${y}</span>${i < cc.length-1 ? '<span style="color:var(--border2);font-size:14px">·</span>' : ''}`
+    document.getElementById('tsb-champs').innerHTML = cc.map(c =>
+      `<div class="tsb-cchamp-row"><span class="tsb-cchamp-year">${c.year}</span><span class="tsb-cchamp-drv">${c.driver}</span><span class="tsb-cchamp-pts">${c.pts}</span></div>`
     ).join('');
   } else {
     champsWrap.style.display = 'none';
