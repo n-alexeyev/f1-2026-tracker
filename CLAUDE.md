@@ -32,7 +32,7 @@ Repository: https://github.com/n-alexeyev/f1-2026-tracker
 ## File structure
 
 ```
-f1_2026_v4.html     — entire app (CSS + HTML + JS, ~1900 lines)
+f1_2026_v4.html     — entire app (CSS + HTML + JS, ~2100 lines)
 photos/
   drivers/          — driver portraits (.webp)
   cars/             — car renders (.webp)
@@ -45,20 +45,23 @@ serve.py            — simple HTTP server
 Live data comes from **Jolpica F1 API**: `https://api.jolpi.ca/ergast/f1`
 
 - Rate limit: ~4 requests/second. Always add a **static fallback** for every API-fetched value — if the API returns 0 (rate-limited empty response), show the static value instead.
-- The static fallback pattern is already used for career wins, poles, and podiums in driver sidebars.
+- The static fallback pattern is used for career wins, poles, and podiums in driver sidebars. If API returns 0 but static data has a value > 0, the static value is shown.
+- Race done/next status uses `r.time` (race start UTC time from API) + 2 hours, not just `r.date`. This correctly handles timezone differences (e.g. Japan races happen Saturday evening EU time but are dated Sunday JST).
 
 ## HTML structure (f1_2026_v4.html)
 
 The file has three logical sections:
 
-1. **CSS** (`<style>`, lines ~1–490) — all styles, CSS variables, responsive layout
-2. **HTML** (`<body>`, lines ~491–600) — page skeleton: nav, section panels, sidebars
-3. **JavaScript** (`<script>`, lines ~601–1896):
+1. **CSS** (`<style>`, lines ~1–560) — all styles, CSS variables, responsive layout
+2. **HTML** (`<body>`, lines ~561–665) — page skeleton: nav, section panels, three sidebars
+3. **JavaScript** (`<script>`, lines ~666–2100):
    - `init()` — fetches live standings + race results from API, renders the page
    - `TEAM_DATA` / `DRIVER_DATA` — static data objects (championships, career stats, team history)
-   - `openSidebar()` / `openTeamSidebar()` — sidebar open logic with async API calls
+   - `openSidebar()` / `openTeamSidebar()` / `openRaceSidebar()` — sidebar open logic
    - `fetchDriverCareerStats()` — wins/poles/podiums from Jolpica API
    - `fetchDriverChampionships()` — WDC years from Jolpica API
+   - `fetchRaceDetails()` — qualifying + race results from Jolpica API (cached in `raceCache`)
+   - `CIRCUIT_DATA` — static object mapping `circuitId` → `{km, laps, rec, drv, yr}`
 
 ## Key data objects
 
@@ -76,15 +79,39 @@ Each team entry has:
 - `jolpicaId` — constructor ID used in API calls
 - `color` — team hex color
 - `driverIds` — array of driver keys matching DRIVER_DATA
-- `constructorChamps` — array of `{year, driver, pts}` (leading driver + their points that season)
+- `constructorChamps` — array of `{year, driver, pts}` (top-scoring driver + their points that season)
 - `driverChamps` — array of `{year, driver}` (WDC winners driving for this team)
+
+### CIRCUIT_DATA
+Static object keyed by Ergast `circuitId` (e.g. `albert_park`, `monaco`):
+- `km` — circuit length in km (string)
+- `laps` — number of race laps
+- `rec` — lap record time string, or `null` for new circuits
+- `drv` — driver who set the lap record
+- `yr` — year the lap record was set
 
 ## Sections / tabs
 
 - **Drivers** — championship standings grid with driver cards, clickable sidebars
 - **Teams** — constructor standings grid, clickable team sidebars
-- **Calendar** — race schedule with track stats, results for completed rounds
+- **Calendar** — race schedule with track stats; done + next cards are clickable → race detail sidebar
 - **Standings** — full driver + constructor championship tables
+
+## Sidebars
+
+There are three independent sidebar panels, each with its own overlay:
+
+| Sidebar | ID | Trigger |
+|---|---|---|
+| Driver | `#driver-sb` / `#sb-overlay` | Click driver card |
+| Team | `#team-sb` / `#tsb-overlay` | Click team card |
+| Race | `#race-sb` / `#rsb-overlay` | Click done/next calendar card |
+
+**Race sidebar** shows:
+- **Qualifying** (P1–P20): best session time (Q3/Q2/Q1), team colour dot; Q1 eliminees are dimmed
+- **Race result** (done races only): finish position, position delta (▲/▼), status for DNF/lapped, points, fastest lap (purple highlight)
+- Data fetched lazily on first click, cached in `raceCache` per round
+- For the current "NEXT" race (qualifying done, race not yet run): shows qualifying grid only
 
 ## Photos
 
