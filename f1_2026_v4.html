@@ -815,8 +815,8 @@ function renderTimeline(races,pm,drivers){
   track.innerHTML='';
   let doneCount=0;
   races.forEach(r=>{
-    const t=new Date(r.date).getTime();
-    const isDone=t<now-86400000;
+    const t=new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime();
+    const isDone=t+7200000<now;
     const isNext=!isDone&&t<now+86400000*14;
     if(isDone) doneCount++;
     const cls=isDone?'done':isNext?'nxt':'';
@@ -1023,9 +1023,10 @@ function renderCalendar(races,pm,winTeam){
   const grid=document.getElementById('cal-grid');
   grid.innerHTML='';
   races.forEach(r=>{
-    const rDate=new Date(r.date).getTime();
-    const done=rDate<now-86400000;
-    const next=!done&&rDate<now+86400000*8;
+    const rStart=new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime();
+    const rDate=rStart; /* keep rDate alias for layout usage below */
+    const done=rStart+7200000<now; /* done when race start + 2h has passed */
+    const next=!done&&rStart<now+86400000*8;
     const st=done?'done':next?'next-r':'upcoming';
     const tc=done?'rtag-done':next?'rtag-next':'rtag-soon';
     const tt=done?'Done':next?'◉ Next':'Soon';
@@ -1069,7 +1070,7 @@ function renderCalendar(races,pm,winTeam){
       ${pod.length?`<div class="podium-wrap">${pod.map((p,i)=>`<div class="pod-row"><div class="pod-m m${i+1}">${i+1}</div>${p.given.charAt(0)}. ${p.name}</div>`).join('')}</div>`:''}`;
     grid.appendChild(el);
   });
-  const done=races.filter(r=>new Date(r.date).getTime()<now).length;
+  const done=races.filter(r=>new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime()+7200000<now).length;
   document.getElementById('cal-meta').textContent=`${done} / ${races.length} done`;
 }
 
@@ -1077,7 +1078,7 @@ function renderCalendar(races,pm,winTeam){
 function renderSeasonKpis(drivers,constrs,races,now){
   const l=drivers[0], cl=constrs[0];
   if(!l) return;
-  const done=races.filter(r=>new Date(r.date).getTime()<now).length;
+  const done=races.filter(r=>new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime()+7200000<now).length;
   const wins=parseInt(l.wins);
   document.getElementById('season-kpis').innerHTML=`
     <div class="season-kpi fi">
