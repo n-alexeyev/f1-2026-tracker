@@ -742,6 +742,8 @@ function flagOf(country, name=''){
 function pad(n){return String(n).padStart(2,'0')}
 /* Старт гонки в UTC; если время не пришло из API — считаем 14:00 UTC */
 function raceStart(r){return new Date(r.date+(r.time?'T'+r.time:'T14:00:00Z')).getTime()}
+/* Трёхбуквенный код пилота из фамилии (Hülkenberg → HUL, Pérez → PER) */
+function driverCode(name){return name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').slice(0,3).toUpperCase()}
 
 /* Base dir — used as fallback; v2 serves via HTTP so relative paths work */
 const BASE = window.location.href.replace(/[^/]*$/, '');
@@ -906,7 +908,7 @@ function renderTimeline(races,pm,nextRound){
     const cls=isDone?'done':isNext?'nxt':'';
     const fl=flagOf(r.Circuit.Location.country,r.raceName);
     const winner=pm[r.round]?.[0];
-    const winLabel=isDone&&winner?winner.name.slice(0,5):'';
+    const winLabel=isDone&&winner?driverCode(winner.name):'';
     const cntryLabel=r.Circuit.Location.country.slice(0,3).toUpperCase();
     const el=document.createElement('div');
     el.className=`tl-stop ${cls}`;
@@ -944,7 +946,7 @@ function renderDrivers(drivers,driverPodiums={}){
     const champCount = DRIVER_DATA[id]?.championships?.length || 0;
     const el=document.createElement('div');
     el.className=`drv-card ${pc} fi${hasSidebar?' clickable':''}`;
-    if(hasSidebar){ el.setAttribute('data-driver',id); el.addEventListener('click',()=>openSidebar(id,col,{wins,pts,podiums,pos,number:num})); }
+    if(hasSidebar){ el.setAttribute('data-driver',id); el.addEventListener('click',()=>openSidebar(id,col,{wins,pts,podiums,pos,number:num,dob:d.Driver.dateOfBirth})); }
     el.innerHTML=`
       <div class="drv-img-wrap">
         <div class="drv-fallback" style="display:${src?'none':'flex'}">${d.Driver.familyName.slice(0,2).toUpperCase()}</div>
@@ -2049,7 +2051,15 @@ async function openSidebar(driverId, col, seasonData = {}) {
   /* name / team / nationality */
   document.getElementById('sb-name').textContent = d.name;
   document.getElementById('sb-team').textContent = document.querySelector(`[data-driver="${driverId}"] .drv-team`)?.textContent || '';
-  document.getElementById('sb-nat').textContent = d.nationality;
+  /* возраст из даты рождения (API) */
+  let natLine = d.nationality;
+  if (seasonData.dob) {
+    const b = new Date(seasonData.dob), t = new Date();
+    let age = t.getFullYear() - b.getFullYear();
+    if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) age--;
+    natLine += ` · ${age} y.o.`;
+  }
+  document.getElementById('sb-nat').textContent = natLine;
 
   /* hero photo */
   const img = document.getElementById('sb-hero-img');
