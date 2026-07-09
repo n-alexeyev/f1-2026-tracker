@@ -549,6 +549,16 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--b
     <div class="season-kpi"><div class="sk" style="width:80px;height:40px;border-radius:4px;margin-bottom:10px"></div><div class="season-kpi-lbl">Races</div></div>
     <div class="season-kpi"><div class="sk" style="width:140px;height:40px;border-radius:4px;margin-bottom:10px"></div><div class="season-kpi-lbl">Constructor</div></div>
   </div>
+  <div class="std-cols" style="margin-top:28px">
+    <div>
+      <div class="std-cap">Drivers' Championship</div>
+      <div id="std-drivers"><div class="sk" style="height:300px;border-radius:8px"></div></div>
+    </div>
+    <div>
+      <div class="std-cap">Constructors' Championship</div>
+      <div id="std-constructors"><div class="sk" style="height:200px;border-radius:8px"></div></div>
+    </div>
+  </div>
 </div>
 
 <footer>
@@ -686,7 +696,7 @@ const DRV = {
   norris:         {f:'Lando_Norris',      c:'lannor01', t:'mclaren',       n:'1' },
   piastri:        {f:'Oscar_Piastri',     c:'oscpia01', t:'mclaren',       n:'81'},
   max_verstappen: {f:'Max_Verstappen',    c:'maxver01', t:'redbullracing', n:'33'},
-  hadjar:         {f:'Isack_Hadjar',      c:'isahad01', t:'redbullracing', n:'22'},
+  hadjar:         {f:'Isack_Hadjar',      c:'isahad01', t:'redbullracing', n:'6' },
   alonso:         {f:'Fernando_Alonso',   c:'feralo01', t:'astonmartin',   n:'14'},
   stroll:         {f:'Lance_Stroll',      c:'lanstr01', t:'astonmartin',   n:'18'},
   hulkenberg:     {f:'Nico_Hulkenberg',   c:'nichul01', t:'audi',          n:'27'},
@@ -698,7 +708,7 @@ const DRV = {
   albon:          {f:'Alexander_Albon',   c:'alealb01', t:'williams',      n:'23'},
   sainz:          {f:'Carlos_Sainz',      c:'carsai01', t:'williams',      n:'55'},
   lawson:         {f:'Liam_Lawson',       c:'lialaw01', t:'racingbulls',   n:'30'},
-  arvid_lindblad: {f:'Arvid_Lindblad',    c:'arvlin01', t:'racingbulls',   n:'6' },
+  arvid_lindblad: {f:'Arvid_Lindblad',    c:'arvlin01', t:'racingbulls',   n:'41'},
   bottas:         {f:'Valtteri_Bottas',   c:'valbot01', t:'cadillac',      n:'77'},
   perez:          {f:'Sergio_Perez',      c:'serper01', t:'cadillac',      n:'11'},
 };
@@ -723,12 +733,15 @@ const FLAGS = {
   Netherlands:'🇳🇱', Singapore:'🇸🇬', Azerbaijan:'🇦🇿',
   Mexico:'🇲🇽', Brazil:'🇧🇷', Qatar:'🇶🇦', 'Abu Dhabi':'🇦🇪',
   Bahrain:'🇧🇭', 'Saudi Arabia':'🇸🇦',
+  UK:'🇬🇧', UAE:'🇦🇪',
 };
 function flagOf(country, name=''){
   if(name.includes('Las Vegas')||name.includes('Miami')) return '🇺🇸';
   return FLAGS[country]||'🏁';
 }
 function pad(n){return String(n).padStart(2,'0')}
+/* Старт гонки в UTC; если время не пришло из API — считаем 14:00 UTC */
+function raceStart(r){return new Date(r.date+(r.time?'T'+r.time:'T14:00:00Z')).getTime()}
 
 /* Base dir — used as fallback; v2 serves via HTTP so relative paths work */
 const BASE = window.location.href.replace(/[^/]*$/, '');
@@ -796,14 +809,12 @@ async function init(){
       if(res) winTeam[r.round]=res.Constructor?.constructorId;
     });
 
-    /* next race */
+    /* next race — единое правило: первая гонка, у которой старт + 2ч ещё не прошёл */
     const now=Date.now();
-    const next=races.find(r=>{
-      const ts=new Date(r.date+(r.time?'T'+r.time:'T14:00:00Z')).getTime();
-      return ts > now-3600000;
-    });
+    const next=races.find(r=>raceStart(r)+7200000>now);
+    const nextRound=next?next.round:null;
     if(next){
-      nextTs=new Date(next.date+(next.time?'T'+next.time:'T14:00:00Z')).getTime();
+      nextTs=raceStart(next);
       document.getElementById('hero-next-flag').textContent=flagOf(next.Circuit.Location.country,next.raceName);
       document.getElementById('hero-next-name').textContent=next.raceName.replace(' Grand Prix','').replace('Grand Prix of ','');
       document.getElementById('hero-next-sub').textContent=
@@ -826,7 +837,7 @@ async function init(){
       });
     });
 
-    renderTimeline(races,pm,drivers);
+    renderTimeline(races,pm,nextRound);
     renderHeroStandings(drivers,constrs);
     /* sync driver scroll height to constructor block height */
     requestAnimationFrame(()=>{
@@ -835,8 +846,9 @@ async function init(){
     });
     renderDrivers(drivers,driverPodiums);
     renderTeams(constrs,drivers,teamPodiums,teamWinsMap);
-    renderCalendar(races,pm,winTeam);
+    renderCalendar(races,pm,winTeam,nextRound);
     renderSeasonKpis(drivers,constrs,races,now);
+    renderStandingsTables(drivers,constrs);
 
     document.getElementById('status-txt').textContent='Data is live';
   }catch(e){
@@ -882,15 +894,14 @@ function renderHeroStandings(drivers,constrs){
 }
 
 /* ── Season Timeline ── */
-function renderTimeline(races,pm,drivers){
+function renderTimeline(races,pm,nextRound){
   const now=Date.now();
   const track=document.getElementById('tl-track');
   track.innerHTML='';
   let doneCount=0;
   races.forEach(r=>{
-    const t=new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime();
-    const isDone=t+7200000<now;
-    const isNext=!isDone&&t<now+86400000*14;
+    const isDone=raceStart(r)+7200000<now;
+    const isNext=r.round===nextRound;
     if(isDone) doneCount++;
     const cls=isDone?'done':isNext?'nxt':'';
     const fl=flagOf(r.Circuit.Location.country,r.raceName);
@@ -910,6 +921,7 @@ function renderTimeline(races,pm,drivers){
 }
 
 /* ── Driver cards ── */
+const liveNumbers={}; /* driverId → номер из API (заполняется при рендере карточек) */
 function renderDrivers(drivers,driverPodiums={}){
   const max=parseFloat(drivers[0]?.points||1);
   const grid=document.getElementById('drv-grid');
@@ -923,6 +935,7 @@ function renderDrivers(drivers,driverPodiums={}){
     const col=drvColor(cid);
     const local=localPhoto(id), cdn=cdnPhoto(id);
     const num=d.Driver.permanentNumber||DRV[id]?.n||'';
+    if(num) liveNumbers[id]=num;
     const pc=pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
 
     const podiums=driverPodiums[id]||0;
@@ -1091,16 +1104,15 @@ const CIRCUIT_DATA = {
 };
 
 /* ── Calendar ── */
-function renderCalendar(races,pm,winTeam){
+function renderCalendar(races,pm,winTeam,nextRound){
   cachedRaces=races; /* store globally for race sidebar */
   const now=Date.now();
   const grid=document.getElementById('cal-grid');
   grid.innerHTML='';
   races.forEach(r=>{
-    const rStart=new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime();
-    const rDate=rStart; /* keep rDate alias for layout usage below */
+    const rStart=raceStart(r);
     const done=rStart+7200000<now; /* done when race start + 2h has passed */
-    const next=!done&&rStart<now+86400000*8;
+    const next=r.round===nextRound;
     const st=done?'done':next?'next-r':'upcoming';
     const tc=done?'rtag-done':next?'rtag-next':'rtag-soon';
     const tt=done?'Done':next?'◉ Next':'Soon';
@@ -1151,7 +1163,7 @@ function renderCalendar(races,pm,winTeam){
       ${pod.length?`<div class="podium-wrap">${pod.map((p,i)=>`<div class="pod-row"><div class="pod-m m${i+1}">${i+1}</div>${p.given.charAt(0)}. ${p.name}</div>`).join('')}</div>`:''}`;
     grid.appendChild(el);
   });
-  const done=races.filter(r=>new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime()+7200000<now).length;
+  const done=races.filter(r=>raceStart(r)+7200000<now).length;
   document.getElementById('cal-meta').textContent=`${done} / ${races.length} done`;
 }
 
@@ -1159,7 +1171,7 @@ function renderCalendar(races,pm,winTeam){
 function renderSeasonKpis(drivers,constrs,races,now){
   const l=drivers[0], cl=constrs[0];
   if(!l) return;
-  const done=races.filter(r=>new Date(r.time?r.date+'T'+r.time:r.date+'T00:00:00Z').getTime()+7200000<now).length;
+  const done=races.filter(r=>raceStart(r)+7200000<now).length;
   const wins=parseInt(l.wins);
   document.getElementById('season-kpis').innerHTML=`
     <div class="season-kpi fi">
@@ -1186,6 +1198,46 @@ function renderSeasonKpis(drivers,constrs,races,now){
     'updated '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long'});
 }
 
+/* ── Full standings tables ── */
+function renderStandingsTables(drivers,constrs){
+  const maxD=parseFloat(drivers[0]?.points||1);
+  const leadD=parseFloat(drivers[0]?.points||0);
+  document.getElementById('std-drivers').innerHTML=drivers.map((d,i)=>{
+    const pos=i+1, pc=pos===1?'g':pos===2?'s':pos===3?'b':'';
+    const cid=d.Constructors[0]?.constructorId, col=drvColor(cid);
+    const pts=parseFloat(d.points), gap=leadD-pts;
+    const photo=localPhoto(d.Driver.driverId);
+    return `<div class="srow fi">
+      <div class="spos ${pc}">${pos}</div>
+      <div class="sthumb">${photo?`<img src="${photo}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}</div>
+      <div class="smid">
+        <div class="sname ${pc}"><span class="sdot" style="background:${col}"></span>${d.Driver.givenName.split(' ').pop()} ${d.Driver.familyName}</div>
+        <div class="sbar-bg"><div class="sbar" style="width:${Math.round(pts/maxD*100)}%;background:${col}"></div></div>
+      </div>
+      <div class="spts ${pc}">${pts}</div>
+      <div class="sgap ${pos===1?'leader':''}">${pos===1?'LEAD':'−'+gap}</div>
+    </div>`;
+  }).join('');
+
+  const maxC=parseFloat(constrs[0]?.points||1);
+  const leadC=parseFloat(constrs[0]?.points||0);
+  document.getElementById('std-constructors').innerHTML=constrs.map((c,i)=>{
+    const pos=i+1, pc=pos===1?'g':pos===2?'s':pos===3?'b':'';
+    const cid=c.Constructor.constructorId, col=drvColor(cid);
+    const pts=parseFloat(c.points), gap=leadC-pts;
+    return `<div class="crow fi">
+      <div class="cpos ${pc}">${pos}</div>
+      <div class="cstripe" style="background:${col}"></div>
+      <div class="cmid">
+        <div class="cname ${pc}">${c.Constructor.name}</div>
+        <div class="cbar-bg"><div class="cbar" style="width:${Math.round(pts/maxC*100)}%;background:${col}"></div></div>
+      </div>
+      <div class="cpts ${pc}">${pts}</div>
+      <div class="cgap ${pos===1?'leader':''}">${pos===1?'LEAD':'−'+gap}</div>
+    </div>`;
+  }).join('');
+}
+
 init();
 
 /* ── RACE SIDEBAR ── */
@@ -1202,7 +1254,8 @@ async function fetchRaceDetails(round, isDone) {
     const quali   = qD?.MRData?.RaceTable?.Races?.[0]?.QualifyingResults || [];
     const results = isDone ? (resD?.MRData?.RaceTable?.Races?.[0]?.Results || []) : [];
     const data = { quali, results };
-    raceCache[key] = data;
+    /* пустой ответ (rate limit / сессия ещё не прошла) не кэшируем — иначе залипнет до перезагрузки */
+    if (quali.length || results.length) raceCache[key] = data;
     return data;
   } catch(e) { return { quali:[], results:[] }; }
 }
@@ -1282,7 +1335,7 @@ async function openRaceSidebar(round, isDone) {
       const pts   = parseFloat(res.points);
       const st    = res.status;
       const isDNF = st==='Retired'||st==='Did not start'||st==='Did not qualify'||st==='Withdrew';
-      const isLap = st.startsWith('+');
+      const isLap = st.startsWith('+')||st==='Lapped'; /* датасет 2026 использует статус "Lapped" */
       const inPts = pts > 0;
 
       /* delta */
@@ -1337,6 +1390,7 @@ const TEAM_DATA = {
     principal: '👤 Toto Wolff',
     founded: '🗓 2010 (as works team)',
     jolpicaId: 'mercedes',
+    careerStats: { wins:138, poles:170, podiums:322 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Mercedes.webp',
     car: 'photos/cars/Mercedes.webp',
     color: '#00D2BE',
@@ -1360,9 +1414,10 @@ const TEAM_DATA = {
     principal: '👤 Frédéric Vasseur',
     founded: '🗓 1950 (F1 debut)',
     jolpicaId: 'ferrari',
+    careerStats: { wins:251, poles:253, podiums:856 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Ferrari.webp',
     car: 'photos/cars/Ferrari.webp',
-    color: '#E8000F',
+    color: '#E8002D',
     driverIds: ['leclerc', 'hamilton'],
     constructorChamps: [
       {year:1961,driver:'P. Hill',pts:34},{year:1964,driver:'Surtees',pts:40},
@@ -1391,6 +1446,7 @@ const TEAM_DATA = {
     principal: '👤 Andrea Stella',
     founded: '🗓 1966',
     jolpicaId: 'mclaren',
+    careerStats: { wins:199, poles:156, podiums:546 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/McLaren.webp',
     car: 'photos/cars/McLaren.webp',
     color: '#FF8000',
@@ -1417,6 +1473,7 @@ const TEAM_DATA = {
     principal: '👤 Christian Horner',
     founded: '🗓 2005',
     jolpicaId: 'red_bull',
+    careerStats: { wins:130, poles:129, podiums:299 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Red_Bull.webp',
     car: 'photos/cars/Red_Bull.webp',
     color: '#3671C6',
@@ -1440,6 +1497,7 @@ const TEAM_DATA = {
     principal: '👤 Andy Cowell',
     founded: '🗓 2021 (rebranded)',
     jolpicaId: 'aston_martin',
+    careerStats: { wins:0,   poles:0,   podiums:9 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Aston_Martin.webp',
     car: 'photos/cars/Aston_Martin.webp',
     color: '#358C75',
@@ -1453,9 +1511,10 @@ const TEAM_DATA = {
     principal: '👤 Oliver Oakes',
     founded: '🗓 1986 (as Toleman)',
     jolpicaId: 'alpine',
+    careerStats: { wins:1,   poles:0,   podiums:7 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Alpine.webp',
     car: 'photos/cars/Alpine.webp',
-    color: '#0090FF',
+    color: '#FF87BC',
     driverIds: ['gasly', 'colapinto'],
     constructorChamps: [
       {year:2005,driver:'Alonso',pts:133},{year:2006,driver:'Alonso',pts:134},
@@ -1470,6 +1529,7 @@ const TEAM_DATA = {
     principal: '👤 James Vowles',
     founded: '🗓 1977',
     jolpicaId: 'williams',
+    careerStats: { wins:114, poles:128, podiums:316 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Williams.webp',
     car: 'photos/cars/Williams.webp',
     color: '#64C4FF',
@@ -1494,6 +1554,7 @@ const TEAM_DATA = {
     principal: '👤 Ayao Komatsu',
     founded: '🗓 2016',
     jolpicaId: 'haas',
+    careerStats: { wins:0,   poles:1,   podiums:0 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Haas.webp',
     car: 'photos/cars/Haas.webp',
     color: '#B6BABD',
@@ -1507,19 +1568,21 @@ const TEAM_DATA = {
     principal: '👤 Mattia Binotto',
     founded: '🗓 2026 (as Audi)',
     jolpicaId: 'sauber',
+    careerStats: { wins:0,   poles:0,   podiums:11 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Audi.webp',
     car: 'photos/cars/Audi.webp',
-    color: '#E8002D',
+    color: '#C0272D',
     driverIds: ['hulkenberg', 'bortoleto'],
     constructorChamps: [],
     driverChamps: [],
   },
   racingbulls: {
-    name: 'Visa Cash App Racing Bulls',
+    name: 'RB F1 Team (Racing Bulls)',
     base: '📍 Faenza, Italy',
     principal: '👤 Laurent Mekies',
     founded: '🗓 1985 (as Minardi)',
-    jolpicaId: 'alphatauri',
+    jolpicaId: 'rb',
+    careerStats: { wins:2,   poles:4,   podiums:6 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Racing_Bulls.webp',
     car: 'photos/cars/Racing_Bulls.webp',
     color: '#6692FF',
@@ -1533,9 +1596,10 @@ const TEAM_DATA = {
     principal: '👤 Graeme Lowdon',
     founded: '🗓 2026 (F1 debut)',
     jolpicaId: 'cadillac',
+    careerStats: { wins:0,   poles:0,   podiums:0 }, /* статический бейслайн, снят с API 2026-07-10 */
     logo: 'photos/logos/Cadillac.webp',
     car: 'photos/cars/Cadillac.webp',
-    color: '#3E48FF',
+    color: '#1E90FF',
     driverIds: ['bottas', 'perez'],
     constructorChamps: [],
     driverChamps: [],
@@ -1565,24 +1629,10 @@ async function fetchTeamStats(jolpicaId) {
     const podiums = wins + parseInt(p2D.MRData?.total || 0) + parseInt(p3D.MRData?.total || 0);
     const poles   = parseInt(poD.MRData?.total || 0);
     const result  = { wins, podiums, poles };
-    teamStatsCache[jolpicaId] = result;
+    /* всё по нулям — скорее всего rate limit, не кэшируем */
+    if (wins || podiums || poles) teamStatsCache[jolpicaId] = result;
     return result;
   } catch(e) { return null; }
-}
-
-async function fetchTeamChampionships(jolpicaId) {
-  const key = jolpicaId + '_champs';
-  if (teamStatsCache[key]) return teamStatsCache[key];
-  try {
-    const res  = await fetch(`${API}/constructors/${jolpicaId}/constructorStandings/?limit=100`);
-    const data = await res.json();
-    const seasons = data.MRData?.StandingsTable?.StandingsLists || [];
-    const years = seasons
-      .filter(s => s.ConstructorStandings?.[0]?.position === '1')
-      .map(s => parseInt(s.season)).sort();
-    teamStatsCache[key] = years;
-    return years;
-  } catch(e) { return []; }
 }
 
 async function openTeamSidebar(teamId, seasonData) {
@@ -1644,7 +1694,7 @@ async function openTeamSidebar(teamId, seasonData) {
   /* current drivers */
   document.getElementById('tsb-drivers').innerHTML = t.driverIds.map(dId => {
     const drv = DRV[dId];
-    const num = drv?.n || '';
+    const num = liveNumbers[dId] || drv?.n || '';
     const dData = DRIVER_DATA[dId];
     const firstName = dData?.name?.split(' ')[0] || '';
     const lastName  = dData?.name?.split(' ').slice(1).join(' ') || '';
@@ -1663,17 +1713,16 @@ async function openTeamSidebar(teamId, seasonData) {
   /* async: fetch career stats */
   const stats = await fetchTeamStats(t.jolpicaId);
 
-  /* career stats */
+  /* career stats: API vs статический бейслайн — берём максимум.
+     Статика покрывает (а) rate-limit нули, (б) недосчёт поулов до 1994,
+     (в) полную линейку Racing Bulls (Minardi→Toro Rosso→AlphaTauri→RB) */
   document.getElementById('tsb-stats-loading').textContent = '';
-  if (stats) {
-    document.getElementById('tsb-stats-grid').innerHTML = [
-      {val: stats.wins,    lbl: 'Race Wins'},
-      {val: stats.poles,   lbl: 'Pole Positions'},
-      {val: stats.podiums, lbl: 'Podiums'},
-    ].map(s => `<div class="sb-stat"><span class="sb-stat-val">${s.val}</span><span class="sb-stat-lbl">${s.lbl}</span></div>`).join('');
-  } else {
-    document.getElementById('tsb-stats-grid').innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px">Failed to load stats</div>`;
-  }
+  const base = t.careerStats || { wins:0, poles:0, podiums:0 };
+  document.getElementById('tsb-stats-grid').innerHTML = [
+    {val: Math.max(stats?.wins    || 0, base.wins),    lbl: 'Race Wins'},
+    {val: Math.max(stats?.poles   || 0, base.poles),   lbl: 'Pole Positions'},
+    {val: Math.max(stats?.podiums || 0, base.podiums), lbl: 'Podiums'},
+  ].map(s => `<div class="sb-stat"><span class="sb-stat-val">${s.val}</span><span class="sb-stat-lbl">${s.lbl}</span></div>`).join('');
 }
 
 function closeTsb() {
@@ -1702,25 +1751,14 @@ async function fetchDriverCareerStats(driverId) {
     const podiums = wins + parseInt(p2D.MRData?.total || 0) + parseInt(p3D.MRData?.total || 0);
     const poles   = parseInt(poD.MRData?.total || 0);
     const result  = { wins, podiums, poles };
-    driverStatsCache[driverId] = result;
+    /* всё по нулям — скорее всего rate limit, не кэшируем */
+    if (wins || podiums || poles) driverStatsCache[driverId] = result;
     return result;
   } catch(e) { return null; }
 }
 
-async function fetchDriverChampionships(driverId) {
-  const key = driverId + '_champs';
-  if (driverStatsCache[key]) return driverStatsCache[key];
-  try {
-    const res  = await fetch(`${API}/drivers/${driverId}/driverStandings/?limit=100`);
-    const data = await res.json();
-    const seasons = data.MRData?.StandingsTable?.StandingsLists || [];
-    const years = seasons
-      .filter(s => s.DriverStandings?.[0]?.position === '1')
-      .map(s => parseInt(s.season)).sort();
-    driverStatsCache[key] = years;
-    return years;
-  } catch(e) { return null; }
-}
+/* Чемпионства — только из статики DRIVER_DATA: эндпоинт driverStandings
+   без указания сезона теперь возвращает HTTP 400 (Jolpica требует season_year). */
 
 /* ── DRIVER SIDEBAR ── */
 const DRIVER_DATA = {
@@ -1728,7 +1766,7 @@ const DRIVER_DATA = {
     name: 'Lewis Hamilton', number: 44,
     nationality: '🇬🇧 British · Stevenage, England',
     teamLogo: 'photos/logos/Ferrari.webp',
-    championships: [2008,2014,2015,2016,2017,2018,2019],
+    championships: [2008,2014,2015,2017,2018,2019,2020],
     careerPoints: '5019',
     stats: [{val:'105',lbl:'Race Wins'},{val:'104',lbl:'Pole Positions'},{val:'197',lbl:'Podiums'}],
     career: [
@@ -1832,7 +1870,8 @@ const DRIVER_DATA = {
       {years:'2001–2009', team:'Renault / McLaren', detail:'2× Champion (2005–06) · 28 wins', color:'#FFF500', active:false},
       {years:'2010–2014', team:'Ferrari',            detail:'11 wins · 5 seasons', color:'#E8000F', active:false},
       {years:'2015–2018', team:'McLaren',            detail:'4 seasons', color:'#FF8000', active:false},
-      {years:'2021–',     team:'Aston Martin',       detail:'Current team', color:'#358C75', active:true},
+      {years:'2021–2022', team:'Alpine',             detail:'F1 return · 2 seasons', color:'#FF87BC', active:false},
+      {years:'2023–',     team:'Aston Martin',       detail:'Current team', color:'#358C75', active:true},
     ]
   },
   stroll: {
@@ -1855,8 +1894,9 @@ const DRIVER_DATA = {
     careerPoints: '622',
     stats: [{val:'0',lbl:'Race Wins'},{val:'1',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
     career: [
-      {years:'2010–2022', team:'Williams / Force India / Renault / Haas', detail:'13 seasons · 1 pole', color:'#00E0FF', active:false},
-      {years:'2023–',     team:'Audi',       detail:'Current team', color:'#E8002D', active:true},
+      {years:'2010–2020', team:'Williams / Force India / Renault', detail:'11 seasons · 1 pole', color:'#00E0FF', active:false},
+      {years:'2023–2024', team:'Haas',       detail:'F1 return · 2 seasons', color:'#B6BABD', active:false},
+      {years:'2025–',     team:'Sauber → Audi', detail:'Current team', color:'#C0272D', active:true},
     ]
   },
   bortoleto: {
@@ -1904,7 +1944,7 @@ const DRIVER_DATA = {
     stats: [{val:'1',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'4',lbl:'Podiums'}],
     career: [
       {years:'2017–2022', team:'Toro Rosso / AlphaTauri', detail:'1 win (2020 Monza) · 6 seasons', color:'#469BFF', active:false},
-      {years:'2023–',     team:'Alpine',                  detail:'Current team', color:'#0090FF', active:true},
+      {years:'2023–',     team:'Alpine',                  detail:'Current team', color:'#FF87BC', active:true},
     ]
   },
   colapinto: {
@@ -1916,7 +1956,7 @@ const DRIVER_DATA = {
     stats: [{val:'0',lbl:'Race Wins'},{val:'0',lbl:'Pole Positions'},{val:'0',lbl:'Podiums'}],
     career: [
       {years:'2024',  team:'Williams', detail:'9 races (sub for Sargeant)', color:'#64C4FF', active:false},
-      {years:'2025–', team:'Alpine',   detail:'Current season', color:'#0090FF', active:true},
+      {years:'2025–', team:'Alpine',   detail:'Current season', color:'#FF87BC', active:true},
     ]
   },
   albon: {
@@ -1944,7 +1984,7 @@ const DRIVER_DATA = {
     ]
   },
   arvid_lindblad: {
-    name: 'Arvid Lindblad', number: 6,
+    name: 'Arvid Lindblad', number: 41,
     nationality: '🇬🇧 British · Sheffield, England',
     teamLogo: 'photos/logos/Racing_Bulls.webp',
     championships: [],
@@ -1965,7 +2005,7 @@ const DRIVER_DATA = {
       {years:'2013–2016', team:'Williams',    detail:'4 seasons', color:'#64C4FF', active:false},
       {years:'2017–2021', team:'Mercedes',   detail:'10 wins · 20 poles · 5 seasons', color:'#00D2BE', active:false},
       {years:'2022–2024', team:'Alfa Romeo / Sauber', detail:'3 seasons', color:'#C92D4B', active:false},
-      {years:'2025–',     team:'Cadillac',   detail:'Current team', color:'#3E48FF', active:true},
+      {years:'2026–',     team:'Cadillac',   detail:'Debut season of the team', color:'#1E90FF', active:true},
     ]
   },
   perez: {
@@ -1976,14 +2016,14 @@ const DRIVER_DATA = {
     careerPoints: '1638',
     stats: [{val:'6',lbl:'Race Wins'},{val:'3',lbl:'Pole Positions'},{val:'39',lbl:'Podiums'}],
     career: [
-      {years:'2011–2013', team:'Sauber / McLaren',       detail:'3 seasons · 1 win', color:'#C92D4B', active:false},
-      {years:'2014–2020', team:'Force India / Racing Point', detail:'5 wins · 7 seasons', color:'#FF87BC', active:false},
-      {years:'2021–2024', team:'Red Bull Racing',         detail:'3 wins · 4 seasons', color:'#3671C6', active:false},
-      {years:'2025–',     team:'Cadillac',                detail:'Current team', color:'#3E48FF', active:true},
+      {years:'2011–2013', team:'Sauber / McLaren',       detail:'3 seasons', color:'#C92D4B', active:false},
+      {years:'2014–2020', team:'Force India / Racing Point', detail:'1 win (Sakhir 2020) · 7 seasons', color:'#FF87BC', active:false},
+      {years:'2021–2024', team:'Red Bull Racing',         detail:'5 wins · 4 seasons', color:'#3671C6', active:false},
+      {years:'2026–',     team:'Cadillac',                detail:'Debut season of the team', color:'#1E90FF', active:true},
     ]
   },
   hadjar: {
-    name: 'Isack Hadjar', number: 22,
+    name: 'Isack Hadjar', number: 6,
     nationality: '🇫🇷 French · Paris, France',
     teamLogo: 'photos/logos/Racing_Bulls.webp',
     championships: [],
@@ -2042,10 +2082,18 @@ async function openSidebar(driverId, col, seasonData = {}) {
     `<div class="sb-stat"><div class="sk" style="width:48px;height:28px;border-radius:4px;margin-bottom:4px"></div><div class="sk" style="width:56px;height:10px;border-radius:3px"></div></div>`
   ).join('');
 
-  /* championships — skeleton while loading */
+  /* championships — статика, рендерим сразу */
   const champsWrap = document.getElementById('sb-champs-wrap');
-  champsWrap.style.display = '';
-  document.getElementById('sb-champs').innerHTML = `<span class="tsb-loading">loading…</span>`;
+  const champs = d.championships || [];
+  if (champs.length > 0) {
+    champsWrap.style.display = '';
+    document.getElementById('sb-champs-count').textContent = `🏆 ×${champs.length}`;
+    document.getElementById('sb-champs').innerHTML = champs.map((y,i)=>
+      `<span class="sb-champ">${y}</span>${i < champs.length-1 ? '<span style="color:var(--border2);font-size:14px">·</span>' : ''}`
+    ).join('');
+  } else {
+    champsWrap.style.display = 'none';
+  }
 
   /* career timeline (static) */
   document.getElementById('sb-timeline').innerHTML = d.career.map(c=>`
@@ -2064,23 +2112,8 @@ async function openSidebar(driverId, col, seasonData = {}) {
   document.getElementById('sb-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  /* async: fetch career stats + championships in parallel */
-  const [stats, champYears] = await Promise.all([
-    fetchDriverCareerStats(driverId),
-    fetchDriverChampionships(driverId),
-  ]);
-
-  /* championships — use API result if non-empty, else fallback to static data */
-  const champs = (champYears && champYears.length > 0) ? champYears : (d.championships || []);
-  if (champs.length > 0) {
-    champsWrap.style.display = '';
-    document.getElementById('sb-champs-count').textContent = `🏆 ×${champs.length}`;
-    document.getElementById('sb-champs').innerHTML = champs.map((y,i)=>
-      `<span class="sb-champ">${y}</span>${i < champs.length-1 ? '<span style="color:var(--border2);font-size:14px">·</span>' : ''}`
-    ).join('');
-  } else {
-    champsWrap.style.display = 'none';
-  }
+  /* async: fetch career stats */
+  const stats = await fetchDriverCareerStats(driverId);
 
   /* career stats */
   document.getElementById('sb-stats-loading').textContent = '';
