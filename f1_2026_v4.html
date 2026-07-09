@@ -82,7 +82,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 .tl-inner{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px 14px}
 .tl-cap{font-family:var(--fm);font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
 .tl-cap-right{font-family:var(--fm);font-size:12px;color:var(--muted);opacity:.5}
-.tl-track{display:flex;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tl-track{position:relative;display:flex;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent)}
 .tl-track::-webkit-scrollbar{display:none}
 .tl-stop{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:58px;position:relative;cursor:default}
 .tl-stop:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:1px;background:var(--border);z-index:0}
@@ -427,7 +427,9 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--b
   .teams-grid{grid-template-columns:1fr}
 }
 @media(max-width:640px){
-  nav .nav-links{display:none}
+  nav{flex-wrap:wrap;height:auto;padding:10px 16px}
+  .nav-links{order:3;width:100%;display:flex;justify-content:space-between;gap:10px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+  .nav-links a{font-size:11px;letter-spacing:1.5px}
   .hero-h1{font-size:clamp(44px,14vw,72px)}
   .hero-cd{grid-template-columns:repeat(2,1fr)}
   .drv-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
@@ -920,6 +922,11 @@ function renderTimeline(races,pm,nextRound){
     track.appendChild(el);
   });
   document.getElementById('tl-progress').textContent=`${doneCount} / ${races.length} completed`;
+  /* автопрокрутка к текущему этапу (или к концу сезона, если всё завершено) */
+  requestAnimationFrame(()=>{
+    const cur=track.querySelector('.tl-stop.nxt')||track.querySelector('.tl-stop.done:last-of-type');
+    if(cur) track.scrollLeft=Math.max(0,cur.offsetLeft-track.clientWidth/2+cur.offsetWidth/2);
+  });
 }
 
 /* ── Driver cards ── */
@@ -953,7 +960,7 @@ function renderDrivers(drivers,driverPodiums={}){
         ${num?`<div class="drv-num">${num}</div>`:''}
         <div class="drv-pos">P${pos}</div>
         ${wins>0?`<div class="drv-wins-badge">🏆 ${wins}</div>`:''}
-        ${champCount>0?`<div class="drv-champ-badge">🏆 ×${champCount}</div>`:''}
+        ${champCount>0?`<div class="drv-champ-badge">👑 ×${champCount}</div>`:''}
       </div>
       <div class="drv-tbar" style="background:${col}"></div>
       <div class="drv-info">
@@ -1119,7 +1126,9 @@ function renderCalendar(races,pm,winTeam,nextRound){
     const tc=done?'rtag-done':next?'rtag-next':'rtag-soon';
     const tt=done?'Done':next?'◉ Next':'Soon';
     const fl=flagOf(r.Circuit.Location.country,r.raceName);
-    const dt=new Date(r.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    /* дата и время старта в локальном часовом поясе пользователя */
+    const d0=new Date(rStart);
+    const dt=d0.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' · '+d0.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     const pod=(pm[r.round]||[]).filter(Boolean);
 
     const el=document.createElement('div');
@@ -1159,8 +1168,8 @@ function renderCalendar(races,pm,winTeam,nextRound){
       <div class="race-flag">${fl}</div>
       <div class="race-name">${r.raceName.replace(' Grand Prix','').replace('Grand Prix of ','')}</div>
       <div class="race-cir">${r.Circuit.circuitName}</div>
-      ${trackBlock}
       <div class="race-dt">${dt}</div>
+      ${trackBlock}
       <span class="race-tag ${tc}">${tt}${clickable?' <span style="opacity:.5;font-size:10px">›</span>':''}</span>
       ${pod.length?`<div class="podium-wrap">${pod.map((p,i)=>`<div class="pod-row"><div class="pod-m m${i+1}">${i+1}</div>${p.given.charAt(0)}. ${p.name}</div>`).join('')}</div>`:''}`;
     grid.appendChild(el);
@@ -2097,7 +2106,7 @@ async function openSidebar(driverId, col, seasonData = {}) {
   const champs = d.championships || [];
   if (champs.length > 0) {
     champsWrap.style.display = '';
-    document.getElementById('sb-champs-count').textContent = `🏆 ×${champs.length}`;
+    document.getElementById('sb-champs-count').textContent = `👑 ×${champs.length}`;
     document.getElementById('sb-champs').innerHTML = champs.map((y,i)=>
       `<span class="sb-champ">${y}</span>${i < champs.length-1 ? '<span style="color:var(--border2);font-size:14px">·</span>' : ''}`
     ).join('');
@@ -2156,7 +2165,7 @@ function closeSidebar() {
 
 document.getElementById('sb-close').addEventListener('click', closeSidebar);
 document.getElementById('sb-overlay').addEventListener('click', closeSidebar);
-document.addEventListener('keydown', e => { if (e.key==='Escape') closeSidebar(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeSidebar(); closeTsb(); closeRaceSidebar(); } });
 </script>
 </body>
 </html>
